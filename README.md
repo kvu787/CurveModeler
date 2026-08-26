@@ -4,7 +4,11 @@ A focused 2D non-uniform rational B-spline modeler for Godot 4.7.2.
 
 ## Run
 
-Open this folder in Godot 4.7.2 and run the project, or start it from a terminal:
+On Windows, double-click **Run.cmd** in File Explorer. It locates Godot 4.7.2, builds the standalone Windows application at `build/NURBSStudio.exe`, and launches it. The build uses the installed editor executable as a custom template and places the project data beside it in `NURBSStudio.pck`, so separate export-template installation is not required. Keep the EXE and PCK together when moving the application.
+
+`Run.cmd` searches the project-local tool cache, `PATH`, common installation locations, and the adjacent Godot 4.7.2 source build. You can also set `GODOT_4_7_2` to the full path of the standard Godot executable.
+
+Alternatively, open this folder in Godot 4.7.2 and run the project, or start it directly from a terminal:
 
 ```powershell
 godot --path .
