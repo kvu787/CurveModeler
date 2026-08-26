@@ -117,3 +117,48 @@ Related terms emphasize slightly different aspects:
 - **Adaptive tessellation** or **adaptive subdivision**: places more samples where the curve bends sharply and fewer where it is nearly straight.
 
 Thus, the sampled-and-connected result is a **polyline**, and the operation is **approximating/tessellating the curve as a polyline**.
+
+## User
+
+> for a nurbs curve, what definition or algorithm for tessellation that accepts some sort of resolution input parameter would provide an ideal visual result
+
+## Assistant
+
+The best choice is **view-adaptive, error-bounded polyline tessellation**—also called **adaptive curve flattening**—with resolution expressed as a maximum **screen-space error in pixels**, not as a fixed number of segments.
+
+Define the result by requiring every emitted chord to satisfy
+
+```text
+max distance(screen_curve(t), chord) <= epsilon_px
+```
+
+over that chord's parameter interval. This directly describes visual quality: zooming in automatically produces more segments, straight regions use very few, tight bends use more, and non-uniform NURBS parameterization cannot waste or starve samples. The GLU NURBS specification uses essentially this notion as its pixel-space parametric-error sampling mode.
+
+A robust NURBS implementation is:
+
+1. Split the NURBS at its distinct knots into rational Bézier spans (conceptually, insert each interior knot until its multiplicity is the degree).
+2. Store each rational Bézier control point homogeneously as `(w*x, w*y, w)`.
+3. Recursively split each span at `t = 0.5` with homogeneous de Casteljau subdivision.
+4. Perspective-divide the subspan's control points, transform them to screen space, and compute
+
+   ```text
+   E = max distance(interior_control_point, endpoint_chord_segment)
+   ```
+
+5. If `E <= epsilon_px`, emit the subspan endpoint. Otherwise subdivide again.
+
+For positive NURBS weights, the convex-hull property makes this control-point test a conservative flatness bound; it also avoids the classic failure of a midpoint-only test on an S-curve whose midpoint happens to lie on its chord. Include a maximum recursion depth/minimum parameter interval as a numerical safety valve, preserve every nonzero knot span boundary, and start a separate polyline at a true discontinuity.
+
+Recommended controls are:
+
+- `epsilon_px = 1.0`: fast preview
+- `epsilon_px = 0.5`: excellent default
+- `epsilon_px = 0.25`: high quality
+
+If the public API must call its input `resolution`, make higher values mean finer output with, for example, `epsilon_px = 0.5 / resolution`, where `resolution = 1` is normal quality. Exposing `max_error_pixels` directly is less ambiguous.
+
+A maximum chord length is useful as a secondary condition for dashed strokes, picking, per-vertex attributes, or animation, but it should not be the primary visual-quality criterion. A perfectly straight span can be rendered exactly by one arbitrarily long segment.
+
+The project's current `tessellate(segment_count)` uniformly samples the NURBS parameter. That is simple, but it is not visually ideal: the parameter is generally neither distance nor curvature uniform, and the chosen count does not account for zoom. In this 2D canvas, tessellating after the world-to-screen transform—or equivalently using `epsilon_world = epsilon_px / zoom`—would give stable quality as the view changes.
+
+If a fixed vertex count is absolutely required, equal-arc-length spacing is better than equal-parameter spacing, but it still allocates too few samples to high-curvature areas and too many to straight ones. An error tolerance is the better contract.
