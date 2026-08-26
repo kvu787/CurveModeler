@@ -7,6 +7,7 @@ func _init() -> void:
 	_test_linear_curve()
 	_test_quadratic_rational_arc()
 	_test_curvature()
+	_test_adaptive_tessellation()
 	_test_serialization()
 	_test_custom_knot_validation()
 	if failures == 0:
@@ -65,6 +66,42 @@ func _test_curvature() -> void:
 		analytic[1].distance_to(finite_first) < 0.0002,
 		"Analytic derivatives must agree with a non-uniform finite difference: %s versus %s" % [analytic[1], finite_first]
 	)
+
+
+func _test_adaptive_tessellation() -> void:
+	var curve := NurbsCurve2D.new([
+		Vector2(0, 0),
+		Vector2(20, 140),
+		Vector2(180, -20),
+		Vector2(240, 0),
+	])
+	var coarse := curve.tessellate_adaptive(5)
+	var fine := curve.tessellate_adaptive(17)
+	_expect(coarse.size() == 5, "Adaptive tessellation must return the requested vertex count")
+	_expect(fine.size() == 17, "Adaptive tessellation must support larger vertex counts")
+	_expect(coarse[0].is_equal_approx(curve.evaluate(0.0)), "Adaptive tessellation must retain the first endpoint")
+	_expect(coarse[-1].is_equal_approx(curve.evaluate(1.0)), "Adaptive tessellation must retain the last endpoint")
+	_expect(_maximum_polyline_error(curve, fine) < _maximum_polyline_error(curve, coarse), "Additional adaptive vertices must improve the approximation")
+
+	var line := NurbsCurve2D.new([Vector2.ZERO, Vector2(100, 0)])
+	var line_points := line.tessellate_adaptive(9)
+	_expect(line_points.size() == 9, "A straight curve must still produce the requested vertex count")
+	for index in range(line_points.size()):
+		_expect(absf(line_points[index].y) < 0.000001, "Straight-curve tessellation vertices must remain on the curve")
+		if index > 0:
+			_expect(line_points[index].x > line_points[index - 1].x, "Straight-curve tessellation parameters must remain ordered and distinct")
+
+
+func _maximum_polyline_error(curve: NurbsCurve2D, polyline: PackedVector2Array) -> float:
+	var greatest_error := 0.0
+	for sample in range(401):
+		var point := curve.evaluate(float(sample) / 400.0)
+		var smallest_distance := INF
+		for index in range(polyline.size() - 1):
+			var closest := Geometry2D.get_closest_point_to_segment(point, polyline[index], polyline[index + 1])
+			smallest_distance = minf(smallest_distance, point.distance_to(closest))
+		greatest_error = maxf(greatest_error, smallest_distance)
+	return greatest_error
 
 
 func _test_serialization() -> void:

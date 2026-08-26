@@ -8,6 +8,7 @@ var canvas: NurbsCanvas
 var inspector_title: Label
 var point_fields: Array[SpinBox] = []
 var degree_spin: SpinBox
+var tessellation_spin: SpinBox
 var knot_edit: LineEdit
 var knot_error: Label
 var curve_info: Label
@@ -221,6 +222,15 @@ func _build_inspector() -> Control:
 	curve_info = Label.new()
 	curve_info.text = ""
 	column.add_child(curve_info)
+	column.add_child(_field_label("Tessellation vertices"))
+	tessellation_spin = SpinBox.new()
+	tessellation_spin.min_value = 3
+	tessellation_spin.max_value = 512
+	tessellation_spin.step = 1
+	tessellation_spin.value = canvas.tessellation_vertex_count
+	tessellation_spin.tooltip_text = "Exact vertex count for the adaptive maximum-error polyline"
+	tessellation_spin.value_changed.connect(_on_tessellation_vertex_count_changed)
+	column.add_child(tessellation_spin)
 	column.add_child(_field_label("Degree"))
 	degree_spin = SpinBox.new()
 	degree_spin.min_value = 1
@@ -355,12 +365,20 @@ func _toggle_curvature(value: bool) -> void:
 	status_label.text = "Curvature comb %s" % ("shown" if value else "hidden")
 
 
+func _on_tessellation_vertex_count_changed(value: float) -> void:
+	if _updating_ui:
+		return
+	canvas.set_tessellation_vertex_count(int(value))
+	status_label.text = "Tessellation: %d vertices" % canvas.tessellation_vertex_count
+
+
 func _on_selection_changed(_index: int) -> void:
 	_refresh_ui()
 
 
 func _on_curve_changed() -> void:
 	dirty = true
+	canvas.invalidate_tessellation()
 	_refresh_ui()
 	_update_window_title()
 
@@ -427,7 +445,7 @@ func _commit_property_change(snapshot: Dictionary) -> void:
 	_undo_stack.append(snapshot)
 	_redo_stack.clear()
 	dirty = true
-	canvas.queue_redraw()
+	canvas.invalidate_tessellation()
 	_refresh_ui()
 	_update_window_title()
 
@@ -466,6 +484,7 @@ func _refresh_ui() -> void:
 	if curve == null:
 		return
 	_updating_ui = true
+	tessellation_spin.value = canvas.tessellation_vertex_count
 	degree_spin.max_value = maxi(1, curve.control_points.size() - 1)
 	degree_spin.value = curve.degree
 	curve_info.text = "%d control points  ·  degree %d" % [curve.control_points.size(), curve.degree]

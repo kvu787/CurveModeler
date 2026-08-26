@@ -17,6 +17,7 @@ const AXIS_Y := Color("37645f")
 const CONTROL_LINE := Color("64748b")
 const CURVE_GLOW := Color("163d52")
 const CURVE_COLOR := Color("38bdf8")
+const TESSELLATION_VERTEX_COLOR := Color("c084fc")
 const CURVATURE_LOW := Color("38bdf8")
 const CURVATURE_HIGH := Color("fb7185")
 const POINT_COLOR := Color("e2e8f0")
@@ -33,10 +34,13 @@ var snap_enabled := false
 var grid_size := 50.0
 var show_grid := true
 var show_curvature := true
+var tessellation_vertex_count := 32
 
 var _dragging_point := false
 var _panning := false
 var _last_mouse_position := Vector2.ZERO
+var _display_tessellation := PackedVector2Array()
+var _tessellation_dirty := true
 
 
 func _ready() -> void:
@@ -50,8 +54,30 @@ func set_curve(value: NurbsCurve2D) -> void:
 	curve = value
 	selected_index = -1
 	hover_index = -1
-	queue_redraw()
+	invalidate_tessellation()
 	selection_changed.emit(-1)
+
+
+func set_tessellation_vertex_count(value: int) -> void:
+	tessellation_vertex_count = maxi(value, 3)
+	invalidate_tessellation()
+
+
+func get_tessellation_points() -> PackedVector2Array:
+	_update_tessellation()
+	return _display_tessellation
+
+
+func invalidate_tessellation() -> void:
+	_tessellation_dirty = true
+	queue_redraw()
+
+
+func _update_tessellation() -> void:
+	if not _tessellation_dirty:
+		return
+	_display_tessellation = curve.tessellate_adaptive(tessellation_vertex_count)
+	_tessellation_dirty = false
 
 
 func set_tool(value: ToolMode) -> void:
@@ -127,6 +153,7 @@ func _draw() -> void:
 	if show_curvature:
 		_draw_curvature_comb()
 	_draw_control_points()
+	_draw_tessellation_vertices()
 
 
 func _draw_grid() -> void:
@@ -184,14 +211,29 @@ func _draw_control_polygon() -> void:
 
 func _draw_curve() -> void:
 	if not curve.is_valid():
+		_display_tessellation.clear()
 		return
-	var segments := clampi(int(size.x * 0.3), 100, 500)
-	var world_points := curve.tessellate(segments)
+	_update_tessellation()
 	var screen_points := PackedVector2Array()
-	for point in world_points:
+	for point in _display_tessellation:
 		screen_points.append(world_to_screen(point))
 	draw_polyline(screen_points, CURVE_GLOW, 7.0, true)
 	draw_polyline(screen_points, CURVE_COLOR, 2.5, true)
+
+
+func _draw_tessellation_vertices() -> void:
+	if not curve.is_valid():
+		return
+	for point in _display_tessellation:
+		var position := world_to_screen(point)
+		draw_circle(position, 5.5, Color(BACKGROUND, 0.96))
+		var diamond := PackedVector2Array([
+			position + Vector2(0, -4),
+			position + Vector2(4, 0),
+			position + Vector2(0, 4),
+			position + Vector2(-4, 0),
+		])
+		draw_colored_polygon(diamond, TESSELLATION_VERTEX_COLOR)
 
 
 func _draw_curvature_comb() -> void:

@@ -8,6 +8,8 @@ extends RefCounted
 ## retain their original parameter domain.
 
 const EPSILON := 0.000001
+const TESSELLATION_SEARCH_STEPS := 24
+const TESSELLATION_REFINEMENT_STEPS := 3
 
 var control_points: Array[Vector2] = []
 var weights: Array[float] = []
@@ -192,6 +194,100 @@ func tessellate(segment_count: int = 160) -> PackedVector2Array:
 		var ratio := float(index) / float(count)
 		result.append(evaluate(lerpf(domain.x, domain.y, ratio)))
 	return result
+
+
+func tessellate_adaptive(vertex_count: int) -> PackedVector2Array:
+	## Returns an exact-size polyline by repeatedly splitting the curve interval
+	## whose chord has the greatest deviation from the curve.
+	var result := PackedVector2Array()
+	if not is_valid():
+		return result
+	var count := maxi(vertex_count, 3)
+	var domain := get_domain()
+	var intervals: Array[Dictionary] = [_make_tessellation_interval(domain.x, domain.y)]
+	while intervals.size() < count - 1:
+		var split_index := 0
+		var greatest_error := -1.0
+		var longest_chord := -1.0
+		for index in range(intervals.size()):
+			var interval := intervals[index]
+			var error: float = interval.error_squared
+			var chord_length: float = interval.chord_length_squared
+			if error > greatest_error or (error == greatest_error and chord_length > longest_chord):
+				split_index = index
+				greatest_error = error
+				longest_chord = chord_length
+
+		var selected := intervals[split_index]
+		var start_parameter: float = selected.start_parameter
+		var end_parameter: float = selected.end_parameter
+		var split_parameter: float = selected.split_parameter
+		if split_parameter <= start_parameter or split_parameter >= end_parameter:
+			split_parameter = (start_parameter + end_parameter) * 0.5
+		intervals[split_index] = _make_tessellation_interval(start_parameter, split_parameter)
+		intervals.insert(split_index + 1, _make_tessellation_interval(split_parameter, end_parameter))
+
+	result.append(evaluate(float(intervals[0].start_parameter)))
+	for interval in intervals:
+		result.append(evaluate(float(interval.end_parameter)))
+	return result
+
+
+func _make_tessellation_interval(start_parameter: float, end_parameter: float) -> Dictionary:
+	var start_point := evaluate(start_parameter)
+	var end_point := evaluate(end_parameter)
+	var interval_length := end_parameter - start_parameter
+	var split_parameter := (start_parameter + end_parameter) * 0.5
+	var split_point := evaluate(split_parameter)
+	var greatest_error := _distance_squared_to_segment(split_point, start_point, end_point)
+
+	for step in range(1, TESSELLATION_SEARCH_STEPS):
+		var parameter := start_parameter + interval_length * float(step) / float(TESSELLATION_SEARCH_STEPS)
+		var point := evaluate(parameter)
+		var error := _distance_squared_to_segment(point, start_point, end_point)
+		if error > greatest_error:
+			greatest_error = error
+			split_parameter = parameter
+
+	# Repeated knots can contain corners, so consider them explicitly even when
+	# they do not happen to coincide with the regular search samples.
+	for knot in knots:
+		if knot > start_parameter + EPSILON and knot < end_parameter - EPSILON:
+			var knot_point := evaluate(knot)
+			var knot_error := _distance_squared_to_segment(knot_point, start_point, end_point)
+			if knot_error > greatest_error:
+				greatest_error = knot_error
+				split_parameter = knot
+
+	var search_radius := interval_length / float(TESSELLATION_SEARCH_STEPS)
+	for _iteration in range(TESSELLATION_REFINEMENT_STEPS):
+		var search_start := maxf(start_parameter, split_parameter - search_radius)
+		var search_end := minf(end_parameter, split_parameter + search_radius)
+		for step in range(1, 8):
+			var parameter := lerpf(search_start, search_end, float(step) / 8.0)
+			var point := evaluate(parameter)
+			var error := _distance_squared_to_segment(point, start_point, end_point)
+			if error > greatest_error:
+				greatest_error = error
+				split_parameter = parameter
+		search_radius = (search_end - search_start) / 8.0
+
+	return {
+		"start_parameter": start_parameter,
+		"end_parameter": end_parameter,
+		"split_parameter": split_parameter,
+		"error_squared": greatest_error,
+		"chord_length_squared": start_point.distance_squared_to(end_point),
+	}
+
+
+static func _distance_squared_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
+	var segment := end - start
+	var length_squared := segment.length_squared()
+	if length_squared <= EPSILON * EPSILON:
+		return point.distance_squared_to(start)
+	var ratio := clampf((point - start).dot(segment) / length_squared, 0.0, 1.0)
+	return point.distance_squared_to(start + segment * ratio)
 
 
 func nearest_parameter(point: Vector2, coarse_steps: int = 120) -> float:

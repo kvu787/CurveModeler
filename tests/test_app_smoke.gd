@@ -17,6 +17,10 @@ func _run() -> void:
 	_expect(app.curve.is_valid(), "Default document must contain a valid curve")
 	_expect(app.canvas.curve == app.curve, "Canvas must display the active document")
 	_expect(app.canvas.show_curvature, "Curvature visualization must be visible by default")
+	_expect(app.canvas.tessellation_vertex_count == 32, "Adaptive tessellation must have a useful default vertex count")
+	app.tessellation_spin.value = 11
+	_expect(app.canvas.tessellation_vertex_count == 11, "The inspector must update the tessellation vertex count")
+	_expect(app.canvas.get_tessellation_points().size() == 11, "The canvas must display exactly the requested tessellation vertices")
 	app._toggle_curvature(false)
 	_expect(not app.canvas.show_curvature, "Curvature visualization must be toggleable")
 	app._toggle_curvature(true)
