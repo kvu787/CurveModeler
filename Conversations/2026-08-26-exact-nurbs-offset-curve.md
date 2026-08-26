@@ -338,3 +338,168 @@ Self-intersections do not prevent drawing the parametric polyline, but they must
 7. Add adaptive cubic fitting later if compact SVG output is important.
 
 Uniform sampling in \(u\), fixed 400-step export, and simply offsetting an already tessellated source polyline are all useful quick previews, but they should not be the accuracy path. They neither allocate vertices according to offset geometry nor reliably handle the increased curvature near an inside-offset cusp.
+
+## User
+
+> given the analytic offset curve and an integer N greater than 2 which specifies the number of vertices the tessellation must have, list optimal ways to tessellate it
+
+## Assistant
+
+With exactly \(N>2\) vertices, "optimal" depends on the error being minimized. For an open offset curve \(O(u)\), retain the two endpoints and choose the \(N-2\) ordered interior parameters
+
+\[
+u_0 < u_1 < \cdots < u_{N-1}.
+\]
+
+The practical best choice is **greedy maximum-error insertion followed by vertex relaxation**. A discrete dynamic-programming minimax solver is the strongest option when a global optimum over a dense candidate grid is worth the cost.
+
+| Method | Optimizes | Quality/cost |
+|---|---|---|
+| Greedy maximum-error insertion plus relaxation | Approximate maximum deviation | Best practical balance |
+| Discrete minimax dynamic programming | Global maximum deviation over candidate samples | Globally optimal on the chosen grid; expensive |
+| Continuous minimax optimization | Continuous maximum/Hausdorff deviation | Potentially highest quality; difficult and nonconvex |
+| Integrated squared-error optimization | Average squared deviation | Smooth average result; may hide a local spike |
+| Curvature-weighted equidistribution | Local chord-error estimate | Very fast analytic placement or initializer |
+| Equal offset arc length | Uniform segment lengths | Simple, but not error-optimal |
+
+### 1. Greedy maximum-error insertion plus relaxation — recommended
+
+Start with endpoints and every mandatory feature parameter. For each current interval \([u_i,u_{i+1}]\), estimate
+
+\[
+E_i=\max_{u\in[u_i,u_{i+1}]}
+\operatorname{dist}\bigl(O(u),\overline{O(u_i)O(u_{i+1})}\bigr).
+\]
+
+Use quarter/midpoint samples and a small one-dimensional refinement around the worst sample to locate the approximate maximum.
+
+Then:
+
+1. Store all intervals in a max-priority queue keyed by \(E_i\).
+2. Remove the interval with the greatest error.
+3. Insert a vertex at its maximum-error parameter, not necessarily its midpoint.
+4. Recompute the two child interval errors.
+5. Repeat until exactly \(N\) vertices exist.
+
+This is an anytime algorithm: every inserted vertex attacks the current worst defect. It also matches an interactive fixed-budget UI well.
+
+After reaching \(N\), improve the result with several **relaxation sweeps**. For each interior parameter \(u_i\), keep its neighbors fixed and move it within \((u_{i-1},u_{i+1})\) to minimize
+
+\[
+\max(E_{i-1},E_i).
+\]
+
+A bounded one-dimensional search is sufficient. Repeated sweeps tend to equalize the active segment errors and remove artifacts caused by irrevocable early greedy choices. This greedy-plus-relaxation hybrid is usually the best engineering solution.
+
+### 2. Discrete global minimax dynamic programming
+
+Generate a dense ordered candidate set
+
+\[
+q_0,q_1,\ldots,q_{M-1}
+\]
+
+containing endpoints, knots, and all mandatory features. Precompute
+
+\[
+D(i,j)=\max_{k=i,\ldots,j}
+\operatorname{dist}\bigl(O(q_k),\overline{O(q_i)O(q_j)}\bigr).
+\]
+
+Then solve
+
+\[
+\mathrm{DP}[m,j]
+=
+\min_{i<j}\max\bigl(\mathrm{DP}[m-1,i],D(i,j)\bigr).
+\]
+
+Backtracking returns exactly \(N\) selected candidates whose largest sampled deviation is globally minimal over that candidate grid.
+
+This gives a meaningful optimality statement, unlike greedy subdivision. Its straightforward cost is roughly \(O(NM^2)\), plus the cost of constructing the segment-error table. A dense adaptive candidate grid and subsequent continuous relaxation can make the result extremely good.
+
+### 3. Continuous minimax parameter optimization
+
+Treat the \(N-2\) interior parameters as continuous variables and minimize
+
+\[
+\min_{u_1,\ldots,u_{N-2}}
+\max_{u}operatorname{dist}(O(u),P_N),
+\]
+
+where \(P_N\) is the polyline through the selected offset points.
+
+This directly targets maximum geometric or Hausdorff-style error. It can produce the best distribution, but the objective is nonsmooth and nonconvex; nearest-polyline ownership changes during optimization, and cusps or self-intersections create additional local minima. Initialize it from greedy insertion or dynamic programming rather than uniform parameters.
+
+### 4. Integrated squared-error optimization
+
+Instead of worst-case deviation, minimize
+
+\[
+J=\int
+\operatorname{dist}(O(u),P_N)^2\,|O'(u)|\,du.
+\]
+
+This weights error by offset arc length and usually produces a visually smooth average fit. It is easier to optimize numerically than a maximum norm, but one short high-error region may be sacrificed to reduce error over a long gentle region. It is suitable when average visual quality matters more than a strict worst-case bound.
+
+### 5. Curvature-weighted equidistribution
+
+For offset arc length \(s_O\), local chord error is approximately
+
+\[
+e\approx\frac{|\kappa_O|\,\Delta s_O^2}{8}.
+\]
+
+Equalizing this estimate implies a vertex density proportional to
+
+\[
+\rho(s_O)\propto\sqrt{|\kappa_O(s_O)|}.
+\]
+
+Construct the cumulative measure
+
+\[
+F(u)=\int_{u_0}^{u}
+\sqrt{|\kappa_O(t)|+\kappa_{\mathrm{floor}}}\,|O'(t)|\,dt,
+\]
+
+then choose parameters satisfying
+
+\[
+F(u_i)=\frac{i}{N-1}F(u_{N-1}).
+\]
+
+The small curvature floor prevents long straight spans from receiving no interior representation. This is fast and makes an excellent initializer, but its local circular approximation becomes unreliable at cusps and rapid curvature changes. Validate or relax the result afterward.
+
+### 6. Equal offset arc length
+
+Build and invert
+
+\[
+S_O(u)=\int_{u_0}^{u}|O'(t)|\,dt
+\]
+
+and place vertices at equal fractions of total offset length. This is optimal only for uniform segment length, not geometric deviation. It is useful for evenly spaced markers or downstream motion, but curvature-weighted placement will render a curve more accurately with the same \(N\).
+
+### Mandatory vertices and feasibility
+
+Before optimizing the remaining vertex budget, reserve vertices for:
+
+- The endpoints of an open curve
+- Tangent discontinuities and chosen join endpoints
+- Offset cusps satisfying \(1-d\kappa(u)=0\)
+- Any user-required feature parameters
+
+Split the optimization at these features and distribute the remaining vertices among the resulting branches. If the number of mandatory vertices exceeds \(N\), no faithful \(N\)-vertex tessellation exists; the operation must report that conflict or use an explicitly lossy fallback.
+
+For a closed curve, count the closure edge without duplicating the first vertex: \(N\) stored vertices produce \(N\) segments. For an open curve, \(N\) vertices produce \(N-1\) segments.
+
+### Recommended fixed-\(N\) pipeline for NURBS Studio
+
+1. Detect and reserve derivative-discontinuous repeated knots, corners, and cusps.
+2. Seed optional parameters using curvature-weighted equidistribution.
+3. Use maximum-error priority-queue insertion until exactly \(N\) vertices exist, allocating vertices across branches by their current worst error.
+4. Perform local minimax relaxation sweeps while preserving parameter order and mandatory vertices.
+5. Measure and expose the final maximum observed deviation.
+
+If a mathematically meaningful grid-optimal result is needed, replace steps 2–4 with dense-candidate minimax dynamic programming, then apply continuous relaxation. Uniform parameter sampling and offsetting a pre-tessellated source polygon are substantially weaker baselines because neither optimizes the analytic offset's actual geometric error.
