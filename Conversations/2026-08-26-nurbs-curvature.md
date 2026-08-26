@@ -219,3 +219,44 @@ Implemented the adjustable adaptive tessellation visualizer.
 Both the NURBS core tests and application smoke tests passed under Godot 4.7.2. A 1280×800 rendered capture was inspected to verify control placement, adaptive polyline shape, marker visibility, endpoint overlap, and inspector layout.
 
 The implementation was committed separately as `c8dc7e8` (`Add adjustable adaptive curve tessellation`).
+
+## User
+
+> explain why the answer to this prompt:
+>
+> let's make this much simpler. what definition or algorithm for tessellation would provide an ideal visual result. it must accept an integer parameter greater than 2 that specifies the number of vertices in the tessellation
+>
+> was "adaptive maximum-error tessellation", instead of something that more places vertices at higher curvature areas and fewer verts at lower curvature places, which seems more intuitive to me.
+
+## Assistant
+
+That intuition is correct: an effective tessellator should generally put more vertices where curvature is high. **Maximum-error tessellation does that indirectly**, while also considering the length of each segment.
+
+For a short curve interval with arc length `s` and approximately constant curvature `kappa`, the deviation between the curve and its chord is approximately
+
+```text
+error ~= |kappa| * s^2 / 8
+```
+
+Consequently, visual error is not determined by curvature alone. A moderately curved but very long chord can be more visibly wrong than a highly curved but already tiny chord. Maximum-error insertion measures that combined result directly: whichever interval currently has the largest chord deviation receives the next vertex. High-curvature regions usually win first, but stop receiving vertices once their segments are short enough that some other interval has become the worse approximation.
+
+A curvature-distribution algorithm is also legitimate. For smooth, regular curves and a sufficiently large vertex budget, equalizing the approximate error above gives
+
+```text
+segment_length proportional to 1 / sqrt(|kappa|)
+vertex_density proportional to sqrt(|kappa|)
+```
+
+Thus vertices should not generally be distributed in direct proportion to curvature. A curvature-driven implementation would numerically integrate `sqrt(abs(kappa))` with respect to arc length, divide that cumulative measure into `vertex_count - 1` equal portions, and invert it to obtain the parameters.
+
+I chose the maximum-error algorithm because it:
+
+- optimizes the visible quantity of interest—curve-to-chord deviation—rather than a proxy;
+- naturally combines curvature and segment length;
+- is independent of the NURBS parameterization;
+- behaves sensibly at straight regions, knot corners, and awkward derivative cases;
+- is incremental and always returns exactly the requested vertex count.
+
+There is one qualification to my earlier wording: the greedy maximum-error algorithm is not the mathematically global optimum. The strict “ideal” definition would be to choose all `N` ordered parameters simultaneously so that the maximum curve-to-polyline distance is minimized. Greedy maximum-error insertion is a simple approximation to that minimax problem. Curvature-weighted arc-length placement is another approximation, with particularly good asymptotic behavior for smooth curves.
+
+So the difference is not “error-based instead of curvature-aware.” The implemented method is curvature-aware through the actual geometric error it produces. Curvature-weighted placement would be a reasonable alternative, but maximum error more directly answers “where would one additional vertex improve the currently visible polyline the most?”
