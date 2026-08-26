@@ -11,4 +11,3 @@ Use one file per conversation.
 
 When implementing stuff, avoid difficult-to-review "mega-commits". Split large work into multiple commits to make it easier to review.
 Separate commits that record conversations from other commits.
-
