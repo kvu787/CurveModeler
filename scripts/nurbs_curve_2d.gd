@@ -134,14 +134,52 @@ func evaluate(parameter: float) -> Vector2:
 	return numerator / denominator
 
 
+func evaluate_derivatives(parameter: float) -> Array[Vector2]:
+	## Returns the position, first derivative, and second derivative at `parameter`.
+	## Basis derivatives are evaluated analytically, including the rational weight
+	## correction, so the result remains accurate for non-uniform knot vectors.
+	var result: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+	if not is_valid():
+		return result
+	var domain := get_domain()
+	var u := clampf(parameter, domain.x, domain.y)
+	var basis_derivatives := _basis_derivatives(u)
+	var numerator_derivatives: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+	var weight_derivatives: Array[float] = [0.0, 0.0, 0.0]
+	for derivative_order in range(3):
+		for point_index in range(control_points.size()):
+			var weighted_basis: float = basis_derivatives[derivative_order][point_index] * weights[point_index]
+			numerator_derivatives[derivative_order] += control_points[point_index] * weighted_basis
+			weight_derivatives[derivative_order] += weighted_basis
+	if absf(weight_derivatives[0]) <= EPSILON:
+		return result
+	result[0] = numerator_derivatives[0] / weight_derivatives[0]
+	result[1] = (numerator_derivatives[1] - result[0] * weight_derivatives[1]) / weight_derivatives[0]
+	result[2] = (
+		numerator_derivatives[2]
+		- result[0] * weight_derivatives[2]
+		- result[1] * (2.0 * weight_derivatives[1])
+	) / weight_derivatives[0]
+	return result
+
+
+func curvature(parameter: float) -> float:
+	return absf(signed_curvature(parameter))
+
+
+func signed_curvature(parameter: float) -> float:
+	var derivatives := evaluate_derivatives(parameter)
+	var speed_squared := derivatives[1].length_squared()
+	if speed_squared <= EPSILON * EPSILON:
+		return 0.0
+	return derivatives[1].cross(derivatives[2]) / (speed_squared * sqrt(speed_squared))
+
+
 func tangent(parameter: float) -> Vector2:
 	if not is_valid():
 		return Vector2.RIGHT
-	var domain := get_domain()
-	var step := maxf((domain.y - domain.x) * 0.0001, EPSILON)
-	var before := evaluate(maxf(domain.x, parameter - step))
-	var after := evaluate(minf(domain.y, parameter + step))
-	return before.direction_to(after)
+	var first_derivative := evaluate_derivatives(parameter)[1]
+	return first_derivative.normalized() if first_derivative.length_squared() > EPSILON * EPSILON else Vector2.RIGHT
 
 
 func tessellate(segment_count: int = 160) -> PackedVector2Array:
@@ -267,3 +305,66 @@ func _basis_functions(span: int, parameter: float) -> Array[float]:
 			saved = left[order - index] * temporary
 		basis[order] = saved
 	return basis
+
+
+func _basis_derivatives(parameter: float) -> Array:
+	# Build every basis degree from the piecewise-constant functions upward.
+	# Differentiating the Cox-de Boor recurrence then gives exact first and
+	# second derivatives without finite-difference step-size sensitivity.
+	var interval_count := knots.size() - 1
+	var basis_by_degree: Array = []
+	var first_by_degree: Array = []
+	var second_by_degree: Array = []
+	var degree_zero: Array[float] = []
+	var first_zero: Array[float] = []
+	var second_zero: Array[float] = []
+	degree_zero.resize(interval_count)
+	first_zero.resize(interval_count)
+	second_zero.resize(interval_count)
+	degree_zero.fill(0.0)
+	first_zero.fill(0.0)
+	second_zero.fill(0.0)
+
+	var domain := get_domain()
+	if is_equal_approx(parameter, domain.y):
+		degree_zero[control_points.size() - 1] = 1.0
+	else:
+		for index in range(interval_count):
+			if parameter >= knots[index] and parameter < knots[index + 1]:
+				degree_zero[index] = 1.0
+				break
+	basis_by_degree.append(degree_zero)
+	first_by_degree.append(first_zero)
+	second_by_degree.append(second_zero)
+
+	for current_degree in range(1, degree + 1):
+		var previous_basis: Array = basis_by_degree[current_degree - 1]
+		var previous_first: Array = first_by_degree[current_degree - 1]
+		var current_size := previous_basis.size() - 1
+		var current_basis: Array[float] = []
+		var current_first: Array[float] = []
+		var current_second: Array[float] = []
+		current_basis.resize(current_size)
+		current_first.resize(current_size)
+		current_second.resize(current_size)
+		current_basis.fill(0.0)
+		current_first.fill(0.0)
+		current_second.fill(0.0)
+		for index in range(current_size):
+			var left_denominator := knots[index + current_degree] - knots[index]
+			var right_denominator := knots[index + current_degree + 1] - knots[index + 1]
+			if absf(left_denominator) > EPSILON:
+				var left_factor := (parameter - knots[index]) / left_denominator
+				current_basis[index] += left_factor * previous_basis[index]
+				current_first[index] += float(current_degree) * previous_basis[index] / left_denominator
+				current_second[index] += float(current_degree) * previous_first[index] / left_denominator
+			if absf(right_denominator) > EPSILON:
+				var right_factor := (knots[index + current_degree + 1] - parameter) / right_denominator
+				current_basis[index] += right_factor * previous_basis[index + 1]
+				current_first[index] -= float(current_degree) * previous_basis[index + 1] / right_denominator
+				current_second[index] -= float(current_degree) * previous_first[index + 1] / right_denominator
+		basis_by_degree.append(current_basis)
+		first_by_degree.append(current_first)
+		second_by_degree.append(current_second)
+
+	return [basis_by_degree[degree], first_by_degree[degree], second_by_degree[degree]]

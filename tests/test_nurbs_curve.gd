@@ -6,6 +6,7 @@ var failures := 0
 func _init() -> void:
 	_test_linear_curve()
 	_test_quadratic_rational_arc()
+	_test_curvature()
 	_test_serialization()
 	_test_custom_knot_validation()
 	if failures == 0:
@@ -32,6 +33,38 @@ func _test_quadratic_rational_arc() -> void:
 	curve.weights[1] = sqrt(0.5)
 	var midpoint := curve.evaluate(0.5)
 	_expect(midpoint.distance_to(Vector2(sqrt(0.5), sqrt(0.5))) < 0.0001, "Rational quadratic must reproduce a quarter circle")
+
+
+func _test_curvature() -> void:
+	var line := NurbsCurve2D.new([Vector2(0, 0), Vector2(10, 20)])
+	line.weights[1] = 3.0
+	for parameter in [0.1, 0.5, 0.9]:
+		_expect(absf(line.curvature(parameter)) < 0.000001, "A rationally parameterized line must have zero curvature")
+
+	var circle := NurbsCurve2D.new([Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)])
+	circle.set_degree(2)
+	circle.weights[1] = sqrt(0.5)
+	for parameter in [0.0, 0.2, 0.5, 0.8, 1.0]:
+		_expect(absf(circle.curvature(parameter) - 1.0) < 0.00001, "A unit circular arc must have unit curvature")
+	_expect(circle.signed_curvature(0.5) > 0.0, "Counterclockwise bending must have positive signed curvature")
+	_expect(circle.evaluate_derivatives(0.5)[0].is_equal_approx(circle.evaluate(0.5)), "Derivative evaluation must preserve the curve position")
+
+	var non_uniform := NurbsCurve2D.new([Vector2(0, 0), Vector2(1, 2), Vector2(3, -1), Vector2(4, 3), Vector2(6, 0)])
+	non_uniform.set_degree(3)
+	non_uniform.weights.assign([1.0, 1.7, 0.8, 2.1, 1.0])
+	_expect(non_uniform.set_custom_knots([0.0, 0.0, 0.0, 0.0, 0.3, 1.0, 1.0, 1.0, 1.0]), "Curvature fixture knots must be valid")
+	var parameter := 0.6
+	var step := 0.001
+	var analytic := non_uniform.evaluate_derivatives(parameter)
+	var evaluated := non_uniform.evaluate(parameter)
+	var finite_first := (non_uniform.evaluate(parameter + step) - non_uniform.evaluate(parameter - step)) / (2.0 * step)
+	_expect(analytic[0].distance_to(evaluated) < 0.000001, "Derivative basis must preserve non-uniform position: %s versus %s" % [analytic[0], evaluated])
+	_expect(non_uniform.evaluate_derivatives(parameter - step)[0].distance_to(non_uniform.evaluate(parameter - step)) < 0.000001, "Derivative basis must preserve nearby non-uniform positions")
+	_expect(non_uniform.evaluate_derivatives(parameter + step)[0].distance_to(non_uniform.evaluate(parameter + step)) < 0.000001, "Derivative basis must preserve nearby non-uniform positions")
+	_expect(
+		analytic[1].distance_to(finite_first) < 0.0002,
+		"Analytic derivatives must agree with a non-uniform finite difference: %s versus %s" % [analytic[1], finite_first]
+	)
 
 
 func _test_serialization() -> void:
