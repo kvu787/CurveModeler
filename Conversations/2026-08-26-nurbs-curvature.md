@@ -82,3 +82,21 @@ Two related quantities add directional information:
 - The **curvature vector** is $dT/ds=\kappa N$, where $T$ is the unit tangent, $s$ is arc length, and $N$ is the principal normal. It points toward the local inside of the bend (the center of the osculating circle). This form also works for curves in 3D.
 
 Thus, “the curvature is 0.2” reports only sharpness. To report which way the curve bends, say “signed curvature” or “curvature vector.” At a point where $\kappa=0$, there is no uniquely defined principal-normal direction.
+
+## User
+
+> implement some kind of visual indicator for curvature
+
+## Assistant
+
+Implemented a toggleable CAD-style curvature comb in NURBS Studio.
+
+The mathematical core now evaluates the NURBS position and its first two derivatives analytically, including rational weights and non-uniform knot vectors. It exposes unsigned and signed curvature, and tangent evaluation now uses the exact first derivative instead of a finite difference.
+
+On the modeling canvas, sampled spikes point toward the inside of each bend. Their length increases with curvature and their color shifts from cyan toward warm pink as the turn becomes sharper. The display magnitude is normalized by the curve's bounding-box diagonal and compressed to a fixed screen-space maximum, keeping the visualization readable across model scales and zoom levels. Straight spans produce no spikes. A compact legend explains the encoding.
+
+The comb is visible by default and can be hidden or restored with the new **Curvature** toolbar toggle.
+
+Tests cover zero curvature on a rationally parameterized line, unit curvature on an exact rational quarter-circle (including endpoints), signed turning direction, agreement with finite differences on a rational non-uniform curve, and the UI toggle. Both the mathematical-core and application smoke suites passed under Godot 4.7.2. A rendered 1280×800 screenshot was also inspected to verify spike direction, relative magnitude, coloring, legend placement, and toolbar fit.
+
+The analytic curvature engine and visual/UI layer were committed separately for review. This conversation continuation is recorded in its own commit as required by the repository instructions.
