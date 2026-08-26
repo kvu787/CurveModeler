@@ -162,3 +162,42 @@ A maximum chord length is useful as a secondary condition for dashed strokes, pi
 The project's current `tessellate(segment_count)` uniformly samples the NURBS parameter. That is simple, but it is not visually ideal: the parameter is generally neither distance nor curvature uniform, and the chosen count does not account for zoom. In this 2D canvas, tessellating after the world-to-screen transform—or equivalently using `epsilon_world = epsilon_px / zoom`—would give stable quality as the view changes.
 
 If a fixed vertex count is absolutely required, equal-arc-length spacing is better than equal-parameter spacing, but it still allocates too few samples to high-curvature areas and too many to straight ones. An error tolerance is the better contract.
+
+## User
+
+> let's make this much simpler. what definition or algorithm for tessellation would provide an ideal visual result. it must accept an integer parameter greater than 2 that specifies the number of vertices in the tessellation
+
+## Assistant
+
+Use an **adaptive maximum-error tessellation**.
+
+Given `vertex_count > 2`:
+
+1. Start with the curve's two endpoints.
+2. For every current line segment, find the point on the corresponding curve interval that is farthest from that line segment.
+3. Select the interval having the largest such error and insert its farthest curve point.
+4. Repeat until there are exactly `vertex_count` vertices.
+
+In pseudocode:
+
+```text
+parameters = [curve_start, curve_end]
+
+while parameters.size < vertex_count:
+    best_error = -infinity
+    best_parameter = curve_start
+
+    for each adjacent (t0, t1) in parameters:
+        t, error = farthest_point_from_chord(t0, t1)
+        if error > best_error:
+            best_error = error
+            best_parameter = t
+
+    insert best_parameter in sorted order
+
+return parameters.map(curve.evaluate)
+```
+
+This always returns exactly the requested number of vertices and naturally spends them where the curve bends most. The ideal mathematical definition behind it is: choose the `vertex_count` ordered curve parameters that minimize the maximum distance between the curve and the resulting polyline. The algorithm above is a simple greedy approximation to that minimax definition.
+
+`farthest_point_from_chord` can be implemented by sampling the interval reasonably densely, then optionally refining around the best sample. This is visually much better than uniform parameter sampling and simpler than converting the NURBS into Bézier spans.
