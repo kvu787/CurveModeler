@@ -9,7 +9,7 @@ Use one file per conversation.
 
 # Godot
 
-If you create a Godot project, include a "Run.cmd" file that launches the Godot project by double clicking the Run.cmd from File Explorer.
+If you create a Godot project, include a "Run.cmd" file that builds and launches the standalone exe of the Godot project by double clicking the Run.cmd from File Explorer.
 
 # Git
 
