@@ -19,8 +19,11 @@ const TESSELLATION_VERTEX_COLOR := Color("c084fc")
 const CURVATURE_LOW := Color("38bdf8")
 const CURVATURE_HIGH := Color("fb7185")
 const POINT_COLOR := Color("e2e8f0")
+const WEIGHT_LOW := Color("38bdf8")
+const WEIGHT_HIGH := Color("fb7185")
 const SELECTED_COLOR := Color("fbbf24")
 const HOVER_COLOR := Color("7dd3fc")
+const CONTROL_POINT_RADIUS := 8.0
 
 var curve := NurbsCurve2D.new()
 var tool_mode := ToolMode.SELECT
@@ -276,17 +279,22 @@ func _draw_curvature_legend() -> void:
 func _draw_control_points() -> void:
 	for index in range(curve.control_points.size()):
 		var position := world_to_screen(curve.control_points[index])
-		var weight_radius := clampf(7.0 + log(maxf(curve.weights[index], 0.01)) * 2.2, 5.0, 15.0)
-		var color := POINT_COLOR
+		var weight_color := _weight_color(curve.weights[index])
+		draw_circle(position, CONTROL_POINT_RADIUS + 3.0, Color(BACKGROUND, 0.95))
+		draw_circle(position, CONTROL_POINT_RADIUS, weight_color)
+		draw_circle(position, CONTROL_POINT_RADIUS - 3.0, BACKGROUND)
 		if index == selected_index:
-			color = SELECTED_COLOR
+			draw_arc(position, CONTROL_POINT_RADIUS + 6.0, 0, TAU, 28, Color(SELECTED_COLOR, 0.75), 1.5, true)
 		elif index == hover_index:
-			color = HOVER_COLOR
-		draw_circle(position, weight_radius + 3.0, Color(BACKGROUND, 0.95))
-		draw_circle(position, weight_radius, color)
-		draw_circle(position, weight_radius - 3.0, BACKGROUND)
-		if index == selected_index:
-			draw_arc(position, weight_radius + 6.0, 0, TAU, 28, Color(SELECTED_COLOR, 0.55), 1.0, true)
+			draw_arc(position, CONTROL_POINT_RADIUS + 5.0, 0, TAU, 28, Color(HOVER_COLOR, 0.7), 1.0, true)
+
+
+func _weight_color(weight: float) -> Color:
+	var logarithmic_weight := log(maxf(weight, NurbsCurve2D.EPSILON))
+	var gradient_position := 0.5 + 0.5 * logarithmic_weight / (1.0 + absf(logarithmic_weight))
+	if gradient_position < 0.5:
+		return WEIGHT_LOW.lerp(POINT_COLOR, gradient_position * 2.0)
+	return POINT_COLOR.lerp(WEIGHT_HIGH, (gradient_position - 0.5) * 2.0)
 
 
 func _gui_input(event: InputEvent) -> void:

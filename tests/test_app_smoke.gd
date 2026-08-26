@@ -19,6 +19,9 @@ func _run() -> void:
 	_expect(app.canvas.show_curvature, "Curvature visualization must be visible by default")
 	_expect(app.canvas.tessellation_vertex_count == 32, "Adaptive tessellation must have a useful default vertex count")
 	_expect(app.canvas.focus_mode == Control.FOCUS_NONE, "The canvas must not accept keyboard focus")
+	_expect(app.canvas._weight_color(1.0).is_equal_approx(app.canvas.POINT_COLOR), "Unit-weight control points must use the gradient midpoint")
+	_expect(app.canvas._weight_color(0.25).b > app.canvas._weight_color(0.25).r, "Lower weights must use the cool side of the gradient")
+	_expect(app.canvas._weight_color(4.0).r > app.canvas._weight_color(4.0).b, "Higher weights must use the warm side of the gradient")
 	for button in app.tool_buttons:
 		_expect(button.focus_mode == Control.FOCUS_NONE, "Tool buttons must be mouse-only")
 	var key_event := InputEventKey.new()
