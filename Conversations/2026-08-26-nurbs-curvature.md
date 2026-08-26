@@ -100,3 +100,20 @@ The comb is visible by default and can be hidden or restored with the new **Curv
 Tests cover zero curvature on a rationally parameterized line, unit curvature on an exact rational quarter-circle (including endpoints), signed turning direction, agreement with finite differences on a rational non-uniform curve, and the UI toggle. Both the mathematical-core and application smoke suites passed under Godot 4.7.2. A rendered 1280×800 screenshot was also inspected to verify spike direction, relative magnitude, coloring, legend placement, and toolbar fit.
 
 The analytic curvature engine and visual/UI layer were committed separately for review. This conversation continuation is recorded in its own commit as required by the repository instructions.
+
+## User
+
+> what is the term that describes taking a nurbs curve (or any mathematically defined curve) and sampling points on it that resemble the curve given enough samples and connecting straight line segments between the points.
+
+## Assistant
+
+The most general term is **polyline approximation**, or more formally, a **piecewise-linear approximation** of the curve.
+
+Related terms emphasize slightly different aspects:
+
+- **Curve tessellation**: common in graphics and CAD for the process of converting the curve into line segments.
+- **Curve flattening**: common when recursively subdividing a curve until each segment is sufficiently straight, usually according to an error tolerance.
+- **Curve discretization**: broader; it means representing the continuous curve with discrete samples, not necessarily connecting them.
+- **Adaptive tessellation** or **adaptive subdivision**: places more samples where the curve bends sharply and fewer where it is nearly straight.
+
+Thus, the sampled-and-connected result is a **polyline**, and the operation is **approximating/tessellating the curve as a polyline**.
