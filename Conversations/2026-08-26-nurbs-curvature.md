@@ -201,3 +201,21 @@ return parameters.map(curve.evaluate)
 This always returns exactly the requested number of vertices and naturally spends them where the curve bends most. The ideal mathematical definition behind it is: choose the `vertex_count` ordered curve parameters that minimize the maximum distance between the curve and the resulting polyline. The algorithm above is a simple greedy approximation to that minimax definition.
 
 `farthest_point_from_chord` can be implemented by sampling the interval reasonably densely, then optionally refining around the best sample. Always choose an interior parameter; if all remaining errors are zero because the curve is straight, split the longest interval at its midpoint. This is visually much better than uniform parameter sampling and simpler than converting the NURBS into Bézier spans.
+
+## User
+
+> implement this feature in the visualizer. i should be able to adjust a vertex count and have the visualizer show the vertices that are the result of this tessellation algorithm.
+
+## Assistant
+
+Implemented the adjustable adaptive tessellation visualizer.
+
+- Added `NurbsCurve2D.tessellate_adaptive(vertex_count)`, which repeatedly inserts the maximum-error curve point and always returns exactly the requested number of vertices. It explicitly considers knot locations, refines the maximum-error search, preserves endpoints, and splits the longest remaining chord at an interior midpoint for straight-curve ties.
+- Added a **Tessellation vertices** integer control to the Curve inspector, ranging from 3 to 512 with a default of 32.
+- The visible cyan curve is now the resulting adaptive polyline, and every tessellation vertex is marked with a purple diamond.
+- Cached tessellation geometry avoids recomputing it during pan, zoom, and unrelated redraws; curve edits and count changes invalidate the cache.
+- Updated the README and added mathematical and application tests for exact counts, endpoints, approximation improvement, straight curves, and live inspector-to-canvas behavior.
+
+Both the NURBS core tests and application smoke tests passed under Godot 4.7.2. A 1280×800 rendered capture was inspected to verify control placement, adaptive polyline shape, marker visibility, endpoint overlap, and inspector layout.
+
+The implementation was committed separately as `c8dc7e8` (`Add adjustable adaptive curve tessellation`).
