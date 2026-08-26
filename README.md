@@ -24,7 +24,6 @@ godot --path .
 - **Tessellation vertices** sets the exact number of vertices in the displayed polyline. Purple diamonds show the adaptively placed result, concentrated around the curve's strongest bends.
 - The toggleable **Curvature** comb points into each bend; longer, warmer spikes mark sharper curvature and disappear on straight spans.
 - The mouse wheel zooms around the pointer; middle- or right-drag pans. **Fit** frames the curve.
-- Grid snapping is optional.
 
 All commands and canvas tools are mouse-only. The keyboard is available only while editing text or numeric values; click the relevant button to apply or perform an action.
 

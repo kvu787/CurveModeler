@@ -31,7 +31,6 @@ var selected_index := -1
 var hover_index := -1
 var zoom := 1.0
 var view_offset := Vector2.ZERO
-var snap_enabled := false
 var grid_size := 50.0
 var show_grid := true
 var show_curvature := true
@@ -329,7 +328,7 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 				if point_index >= 0:
 					_dragging_point = true
 			ToolMode.ADD:
-				var new_point := _snap(screen_to_world(event.position))
+				var new_point := screen_to_world(event.position)
 				var insert_index := _nearest_control_segment(event.position) + 1 if curve.control_points.size() >= 2 else -1
 				select_point(curve.add_point(new_point, insert_index))
 				curve_changed.emit()
@@ -348,7 +347,7 @@ func _handle_mouse_motion(event: InputEventMouseMotion) -> void:
 		view_offset += event.relative
 		queue_redraw()
 	elif _dragging_point and selected_index >= 0:
-		curve.control_points[selected_index] = _snap(screen_to_world(event.position))
+		curve.control_points[selected_index] = screen_to_world(event.position)
 		curve_changed.emit()
 		queue_redraw()
 	else:
@@ -394,9 +393,3 @@ func _nearest_control_segment(screen_position: Vector2) -> int:
 			best_distance = distance
 			best_index = index
 	return best_index
-
-
-func _snap(value: Vector2) -> Vector2:
-	if not snap_enabled:
-		return value
-	return value.snapped(Vector2(grid_size, grid_size))

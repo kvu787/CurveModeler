@@ -199,11 +199,6 @@ func _build_toolbar() -> Control:
 	grid_toggle.button_pressed = true
 	grid_toggle.toggled.connect(_toggle_grid)
 	row.add_child(grid_toggle)
-	var snap_toggle := CheckButton.new()
-	snap_toggle.text = "Snap"
-	snap_toggle.focus_mode = Control.FOCUS_NONE
-	snap_toggle.toggled.connect(_toggle_snap)
-	row.add_child(snap_toggle)
 	var curvature_toggle := CheckButton.new()
 	curvature_toggle.text = "Curvature"
 	curvature_toggle.focus_mode = Control.FOCUS_NONE
@@ -348,11 +343,6 @@ func _fit_view() -> void:
 func _toggle_grid(value: bool) -> void:
 	canvas.show_grid = value
 	canvas.queue_redraw()
-
-
-func _toggle_snap(value: bool) -> void:
-	canvas.snap_enabled = value
-	status_label.text = "Grid snapping %s" % ("on" if value else "off")
 
 
 func _toggle_curvature(value: bool) -> void:
