@@ -18,6 +18,21 @@ func _run() -> void:
 	_expect(app.canvas.curve == app.curve, "Canvas must display the active document")
 	_expect(app.canvas.show_curvature, "Curvature visualization must be visible by default")
 	_expect(app.canvas.tessellation_vertex_count == 32, "Adaptive tessellation must have a useful default vertex count")
+	_expect(app.canvas.focus_mode == Control.FOCUS_NONE, "The canvas must not accept keyboard focus")
+	for button in app.tool_buttons:
+		_expect(button.focus_mode == Control.FOCUS_NONE, "Tool buttons must be mouse-only")
+	var key_event := InputEventKey.new()
+	key_event.keycode = KEY_N
+	key_event.ctrl_pressed = true
+	_expect(not app._is_value_entry_key(key_event), "Application shortcuts must be blocked")
+	app.knot_edit.grab_focus()
+	await process_frame
+	key_event.ctrl_pressed = false
+	key_event.unicode = 110
+	_expect(app._is_value_entry_key(key_event), "Typing must remain available in value fields")
+	key_event.keycode = KEY_ENTER
+	key_event.unicode = 0
+	_expect(not app._is_value_entry_key(key_event), "Value fields must not turn Enter into an application action")
 	app.tessellation_spin.value = 11
 	_expect(app.canvas.tessellation_vertex_count == 11, "The inspector must update the tessellation vertex count")
 	_expect(app.canvas.get_tessellation_points().size() == 11, "The canvas must display exactly the requested tessellation vertices")

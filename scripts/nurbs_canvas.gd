@@ -44,7 +44,7 @@ var _tessellation_dirty := true
 func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_CROSS
 	clip_contents = true
-	focus_mode = Control.FOCUS_ALL
+	focus_mode = Control.FOCUS_NONE
 	resized.connect(queue_redraw)
 
 
@@ -314,7 +314,6 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if event.pressed:
-		grab_focus()
 		var point_index := _point_at(event.position)
 		match tool_mode:
 			ToolMode.SELECT:

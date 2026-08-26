@@ -33,7 +33,24 @@ func _ready() -> void:
 
 func _finish_startup() -> void:
 	canvas.fit_curve()
-	canvas.grab_focus()
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and not _is_value_entry_key(event):
+		get_viewport().set_input_as_handled()
+
+
+func _is_value_entry_key(event: InputEventKey) -> bool:
+	var focused_control := get_viewport().gui_get_focus_owner()
+	if not (focused_control is LineEdit or focused_control is TextEdit):
+		return false
+	if event.alt_pressed or event.meta_pressed:
+		return false
+	if event.ctrl_pressed:
+		return event.keycode in [KEY_A, KEY_C, KEY_V, KEY_X, KEY_Y, KEY_Z, KEY_BACKSPACE, KEY_DELETE, KEY_LEFT, KEY_RIGHT, KEY_HOME, KEY_END]
+	if event.unicode >= 32:
+		return true
+	return event.keycode in [KEY_BACKSPACE, KEY_DELETE, KEY_INSERT, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END]
 
 
 func _build_theme() -> void:
@@ -157,36 +174,40 @@ func _build_toolbar() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	margin.add_child(row)
-	row.add_child(_button("New", _new_document, "Ctrl+N"))
-	row.add_child(_button("Open", _show_open_dialog, "Ctrl+O"))
-	row.add_child(_button("Save", _save_document, "Ctrl+S"))
-	row.add_child(_button("Export SVG", _show_export_dialog, "Ctrl+E"))
+	row.add_child(_button("New", _new_document))
+	row.add_child(_button("Open", _show_open_dialog))
+	row.add_child(_button("Save", _save_document))
+	row.add_child(_button("Export SVG", _show_export_dialog))
 	row.add_child(VSeparator.new())
 
 	var group := ButtonGroup.new()
-	for definition in [["Select", NurbsCanvas.ToolMode.SELECT, "V"], ["Add point", NurbsCanvas.ToolMode.ADD, "A"], ["Delete", NurbsCanvas.ToolMode.DELETE, "X"]]:
+	for definition in [["Select", NurbsCanvas.ToolMode.SELECT], ["Add point", NurbsCanvas.ToolMode.ADD], ["Delete", NurbsCanvas.ToolMode.DELETE]]:
 		var button := Button.new()
 		button.text = definition[0]
+		button.focus_mode = Control.FOCUS_NONE
 		button.toggle_mode = true
 		button.button_group = group
-		button.tooltip_text = "%s tool  [%s]" % [definition[0], definition[2]]
+		button.tooltip_text = "%s tool" % definition[0]
 		button.pressed.connect(_set_tool.bind(definition[1]))
 		tool_buttons.append(button)
 		row.add_child(button)
 	tool_buttons[0].button_pressed = true
 	row.add_child(VSeparator.new())
-	row.add_child(_button("Fit", _fit_view, "F"))
+	row.add_child(_button("Fit", _fit_view))
 	var grid_toggle := CheckButton.new()
 	grid_toggle.text = "Grid"
+	grid_toggle.focus_mode = Control.FOCUS_NONE
 	grid_toggle.button_pressed = true
 	grid_toggle.toggled.connect(_toggle_grid)
 	row.add_child(grid_toggle)
 	var snap_toggle := CheckButton.new()
 	snap_toggle.text = "Snap"
+	snap_toggle.focus_mode = Control.FOCUS_NONE
 	snap_toggle.toggled.connect(_toggle_snap)
 	row.add_child(snap_toggle)
 	var curvature_toggle := CheckButton.new()
 	curvature_toggle.text = "Curvature"
+	curvature_toggle.focus_mode = Control.FOCUS_NONE
 	curvature_toggle.button_pressed = true
 	curvature_toggle.tooltip_text = "Show curvature spikes; longer and warmer means a sharper bend"
 	curvature_toggle.toggled.connect(_toggle_curvature)
@@ -234,7 +255,6 @@ func _build_inspector() -> Control:
 	knot_edit = LineEdit.new()
 	knot_edit.placeholder_text = "0, 0, 0, 1, 1, 1"
 	knot_edit.tooltip_text = "A nondecreasing list with point count + degree + 1 values"
-	knot_edit.text_submitted.connect(_apply_knots.unbind(1))
 	column.add_child(knot_edit)
 	var knot_actions := HBoxContainer.new()
 	knot_actions.add_child(_button("Apply knots", _apply_knots))
@@ -263,7 +283,7 @@ func _build_inspector() -> Control:
 		spin.value_changed.connect(_on_point_field_changed)
 		point_fields.append(spin)
 		column.add_child(spin)
-	column.add_child(_button("Remove selected point", _delete_selected, "Delete"))
+	column.add_child(_button("Remove selected point", _delete_selected))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
@@ -291,10 +311,10 @@ func _build_dialogs() -> void:
 	add_child(export_dialog)
 
 
-func _button(text_value: String, action: Callable, tooltip := "") -> Button:
+func _button(text_value: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text_value
-	button.tooltip_text = tooltip
+	button.focus_mode = Control.FOCUS_NONE
 	button.pressed.connect(action)
 	return button
 
@@ -533,26 +553,3 @@ func _ensure_extension(path: String, extension: String) -> String:
 func _update_window_title() -> void:
 	var document_name := "Untitled" if current_path.is_empty() else current_path.get_file()
 	get_window().title = "%s%s — %s" % ["*" if dirty else "", document_name, APP_TITLE]
-
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not event.pressed or event.echo:
-		return
-	if event.ctrl_pressed:
-		match event.keycode:
-			KEY_N: _new_document()
-			KEY_O: _show_open_dialog()
-			KEY_S: _save_document()
-			KEY_E: _show_export_dialog()
-		return
-	match event.keycode:
-		KEY_V: _activate_tool(NurbsCanvas.ToolMode.SELECT)
-		KEY_A: _activate_tool(NurbsCanvas.ToolMode.ADD)
-		KEY_X: _activate_tool(NurbsCanvas.ToolMode.DELETE)
-		KEY_F: _fit_view()
-		KEY_DELETE, KEY_BACKSPACE: _delete_selected()
-
-
-func _activate_tool(mode: NurbsCanvas.ToolMode) -> void:
-	tool_buttons[mode].button_pressed = true
-	_set_tool(mode)
