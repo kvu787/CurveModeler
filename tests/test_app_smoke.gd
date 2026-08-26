@@ -28,7 +28,9 @@ func _run() -> void:
 	key_event.keycode = KEY_N
 	key_event.ctrl_pressed = true
 	_expect(not app._is_value_entry_key(key_event), "Application shortcuts must be blocked")
-	app.knot_edit.grab_focus()
+	_expect(not app.knot_display.editable, "The knot vector must be displayed read-only")
+	_expect(not app.knot_display.text.is_empty(), "The current knot vector must be visible")
+	app.point_fields[0].get_line_edit().grab_focus()
 	await process_frame
 	key_event.ctrl_pressed = false
 	key_event.unicode = 110

@@ -19,7 +19,7 @@ godot --path .
 - **Select** selects and drags control points.
 - **Add point** inserts a control point into the nearest control-polygon segment.
 - **Delete** removes the point under the cursor. **Remove selected point** removes the selected point.
-- The inspector edits exact X/Y coordinates, rational weight, curve degree, and the full knot vector.
+- The inspector edits exact X/Y coordinates, rational weight, and curve degree. It also displays the current knot vector in a compact read-only field.
 - Control vertices stay a constant size; their rational weights use a cool-to-warm color gradient centered on weight 1.
 - **Tessellation vertices** sets the exact number of vertices in the displayed polyline. Purple diamonds show the adaptively placed result, concentrated around the curve's strongest bends.
 - The toggleable **Curvature** comb points into each bend; longer, warmer spikes mark sharper curvature and disappear on straight spans.

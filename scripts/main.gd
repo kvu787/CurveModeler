@@ -9,8 +9,7 @@ var inspector_title: Label
 var point_fields: Array[SpinBox] = []
 var degree_spin: SpinBox
 var tessellation_spin: SpinBox
-var knot_edit: LineEdit
-var knot_error: Label
+var knot_display: LineEdit
 var curve_info: Label
 var status_label: Label
 var file_dialog: FileDialog
@@ -252,19 +251,10 @@ func _build_inspector() -> Control:
 	degree_spin.value_changed.connect(_on_degree_changed)
 	column.add_child(degree_spin)
 	column.add_child(_field_label("Knot vector"))
-	knot_edit = LineEdit.new()
-	knot_edit.placeholder_text = "0, 0, 0, 1, 1, 1"
-	knot_edit.tooltip_text = "A nondecreasing list with point count + degree + 1 values"
-	column.add_child(knot_edit)
-	var knot_actions := HBoxContainer.new()
-	knot_actions.add_child(_button("Apply knots", _apply_knots))
-	knot_actions.add_child(_button("Uniform", _make_uniform))
-	column.add_child(knot_actions)
-	knot_error = Label.new()
-	knot_error.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	knot_error.add_theme_font_size_override("font_size", 11)
-	knot_error.add_theme_color_override("font_color", Color("fb7185"))
-	column.add_child(knot_error)
+	knot_display = LineEdit.new()
+	knot_display.editable = false
+	knot_display.tooltip_text = "The curve's read-only knot vector"
+	column.add_child(knot_display)
 	column.add_child(HSeparator.new())
 
 	inspector_title = Label.new()
@@ -409,25 +399,6 @@ func _on_point_field_changed(_value: float) -> void:
 	_on_curve_changed()
 
 
-func _apply_knots() -> void:
-	var values: Array[float] = []
-	for part in knot_edit.text.replace(";", ",").split(",", false):
-		if not part.strip_edges().is_valid_float():
-			knot_error.text = "Every knot must be a number."
-			return
-		values.append(part.strip_edges().to_float())
-	if not curve.set_custom_knots(values):
-		knot_error.text = "Expected %d nondecreasing values with a usable domain." % (curve.control_points.size() + curve.degree + 1)
-		return
-	knot_error.text = ""
-	_on_curve_changed()
-
-
-func _make_uniform() -> void:
-	curve.regenerate_knots()
-	_on_curve_changed()
-
-
 func _delete_selected() -> void:
 	canvas.delete_selected()
 
@@ -443,7 +414,7 @@ func _refresh_ui() -> void:
 	var knot_parts: PackedStringArray = []
 	for knot in curve.knots:
 		knot_parts.append(str(snappedf(knot, 0.001)))
-	knot_edit.text = ", ".join(knot_parts)
+	knot_display.text = ", ".join(knot_parts)
 	var has_selection := canvas.selected_index >= 0 and canvas.selected_index < curve.control_points.size()
 	inspector_title.text = "CONTROL POINT %d" % (canvas.selected_index + 1) if has_selection else "CONTROL POINT"
 	for field in point_fields:
