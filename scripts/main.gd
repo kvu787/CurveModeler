@@ -20,16 +20,13 @@ var tool_buttons: Array[Button] = []
 var current_path := ""
 var dirty := false
 var _updating_ui := false
-var _edit_snapshot: Dictionary = {}
-var _undo_stack: Array[Dictionary] = []
-var _redo_stack: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	_build_theme()
 	_build_interface()
 	_build_dialogs()
-	_new_document(false)
+	_new_document()
 	get_window().title = APP_TITLE
 	call_deferred("_finish_startup")
 
@@ -101,8 +98,6 @@ func _build_interface() -> void:
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas.selection_changed.connect(_on_selection_changed)
 	canvas.curve_changed.connect(_on_curve_changed)
-	canvas.edit_started.connect(_on_edit_started)
-	canvas.edit_finished.connect(_on_edit_finished)
 	canvas.pointer_status.connect(_on_pointer_status)
 	workspace.add_child(canvas)
 
@@ -162,13 +157,10 @@ func _build_toolbar() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	margin.add_child(row)
-	row.add_child(_button("New", _new_document.bind(true), "Ctrl+N"))
+	row.add_child(_button("New", _new_document, "Ctrl+N"))
 	row.add_child(_button("Open", _show_open_dialog, "Ctrl+O"))
 	row.add_child(_button("Save", _save_document, "Ctrl+S"))
 	row.add_child(_button("Export SVG", _show_export_dialog, "Ctrl+E"))
-	row.add_child(VSeparator.new())
-	row.add_child(_button("Undo", _undo, "Ctrl+Z"))
-	row.add_child(_button("Redo", _redo, "Ctrl+Shift+Z"))
 	row.add_child(VSeparator.new())
 
 	var group := ButtonGroup.new()
@@ -276,7 +268,7 @@ func _build_inspector() -> Control:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
 	var help := Label.new()
-	help.text = "Mouse wheel  Zoom\nMiddle / right drag  Pan\nLeft drag  Move point\nCurvature spikes point into bends\nCtrl+Z  Undo"
+	help.text = "Mouse wheel  Zoom\nMiddle / right drag  Pan\nLeft drag  Move point\nCurvature spikes point into bends"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("64748b"))
 	column.add_child(help)
@@ -315,9 +307,7 @@ func _field_label(text_value: String) -> Label:
 	return label
 
 
-func _new_document(confirm_if_dirty := true) -> void:
-	# New is intentionally immediate; all geometry edits remain recoverable via undo.
-	var previous := curve.to_dictionary() if curve != null else {}
+func _new_document() -> void:
 	curve = NurbsCurve2D.new([
 		Vector2(-320, -80),
 		Vector2(-180, 180),
@@ -329,10 +319,6 @@ func _new_document(confirm_if_dirty := true) -> void:
 	canvas.set_curve(curve)
 	current_path = ""
 	dirty = false
-	_undo_stack.clear()
-	_redo_stack.clear()
-	if not previous.is_empty() and confirm_if_dirty:
-		_undo_stack.append(previous)
 	_refresh_ui()
 	_update_window_title()
 	status_label.text = "New document"
@@ -383,19 +369,6 @@ func _on_curve_changed() -> void:
 	_update_window_title()
 
 
-func _on_edit_started() -> void:
-	_edit_snapshot = curve.to_dictionary()
-
-
-func _on_edit_finished() -> void:
-	if not _edit_snapshot.is_empty() and curve.to_dictionary() != _edit_snapshot:
-		_undo_stack.append(_edit_snapshot)
-		if _undo_stack.size() > 100:
-			_undo_stack.pop_front()
-		_redo_stack.clear()
-	_edit_snapshot = {}
-
-
 func _on_pointer_status(text_value: String) -> void:
 	status_label.text = text_value
 
@@ -403,19 +376,17 @@ func _on_pointer_status(text_value: String) -> void:
 func _on_degree_changed(value: float) -> void:
 	if _updating_ui or curve == null:
 		return
-	var snapshot := curve.to_dictionary()
 	curve.set_degree(int(value))
-	_commit_property_change(snapshot)
+	_on_curve_changed()
 
 
 func _on_point_field_changed(_value: float) -> void:
 	if _updating_ui or canvas.selected_index < 0:
 		return
-	var snapshot := curve.to_dictionary()
 	var index := canvas.selected_index
 	curve.control_points[index] = Vector2(point_fields[0].value, point_fields[1].value)
 	curve.weights[index] = point_fields[2].value
-	_commit_property_change(snapshot)
+	_on_curve_changed()
 
 
 func _apply_knots() -> void:
@@ -425,59 +396,20 @@ func _apply_knots() -> void:
 			knot_error.text = "Every knot must be a number."
 			return
 		values.append(part.strip_edges().to_float())
-	var snapshot := curve.to_dictionary()
 	if not curve.set_custom_knots(values):
 		knot_error.text = "Expected %d nondecreasing values with a usable domain." % (curve.control_points.size() + curve.degree + 1)
 		return
 	knot_error.text = ""
-	_commit_property_change(snapshot)
+	_on_curve_changed()
 
 
 func _make_uniform() -> void:
-	var snapshot := curve.to_dictionary()
 	curve.regenerate_knots()
-	_commit_property_change(snapshot)
-
-
-func _commit_property_change(snapshot: Dictionary) -> void:
-	if curve.to_dictionary() == snapshot:
-		return
-	_undo_stack.append(snapshot)
-	_redo_stack.clear()
-	dirty = true
-	canvas.invalidate_tessellation()
-	_refresh_ui()
-	_update_window_title()
+	_on_curve_changed()
 
 
 func _delete_selected() -> void:
 	canvas.delete_selected()
-
-
-func _undo() -> void:
-	if _undo_stack.is_empty():
-		status_label.text = "Nothing to undo"
-		return
-	_redo_stack.append(curve.to_dictionary())
-	_restore_snapshot(_undo_stack.pop_back())
-	status_label.text = "Undo"
-
-
-func _redo() -> void:
-	if _redo_stack.is_empty():
-		status_label.text = "Nothing to redo"
-		return
-	_undo_stack.append(curve.to_dictionary())
-	_restore_snapshot(_redo_stack.pop_back())
-	status_label.text = "Redo"
-
-
-func _restore_snapshot(snapshot: Dictionary) -> void:
-	curve = NurbsCurve2D.from_dictionary(snapshot)
-	canvas.set_curve(curve)
-	dirty = true
-	_refresh_ui()
-	_update_window_title()
 
 
 func _refresh_ui() -> void:
@@ -559,8 +491,6 @@ func _open_document(path: String) -> void:
 	canvas.set_curve(curve)
 	current_path = path
 	dirty = false
-	_undo_stack.clear()
-	_redo_stack.clear()
 	_refresh_ui()
 	_update_window_title()
 	canvas.fit_curve()
@@ -610,14 +540,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if event.ctrl_pressed:
 		match event.keycode:
-			KEY_N: _new_document(true)
+			KEY_N: _new_document()
 			KEY_O: _show_open_dialog()
 			KEY_S: _save_document()
 			KEY_E: _show_export_dialog()
-			KEY_Z:
-				if event.shift_pressed: _redo()
-				else: _undo()
-			KEY_Y: _redo()
 		return
 	match event.keycode:
 		KEY_V: _activate_tool(NurbsCanvas.ToolMode.SELECT)

@@ -28,14 +28,10 @@ func _run() -> void:
 	app.canvas.select_point(2)
 	_expect(app.canvas.selected_index == 2, "Control-point selection must update")
 	var original_point: Vector2 = app.curve.control_points[2]
-	app._on_edit_started()
 	app.curve.control_points[2] += Vector2(25, -10)
 	app._on_curve_changed()
-	app._on_edit_finished()
-	app._undo()
-	_expect(app.curve.control_points[2].is_equal_approx(original_point), "Undo must restore a point drag")
-	app._redo()
-	_expect(app.curve.control_points[2].is_equal_approx(original_point + Vector2(25, -10)), "Redo must restore the edit")
+	_expect(app.curve.control_points[2].is_equal_approx(original_point + Vector2(25, -10)), "Point edits must update the active curve")
+	_expect(app.dirty, "Point edits must mark the document as modified")
 
 	var output_directory := ProjectSettings.globalize_path("res://.godot/test-output")
 	DirAccess.make_dir_recursive_absolute(output_directory)

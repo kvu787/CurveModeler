@@ -23,7 +23,7 @@ godot --path .
 - **Tessellation vertices** sets the exact number of vertices in the displayed polyline. Purple diamonds show the adaptively placed result, concentrated around the curve's strongest bends.
 - The toggleable **Curvature** comb points into each bend; longer, warmer spikes mark sharper curvature and disappear on straight spans.
 - The mouse wheel zooms around the pointer; middle- or right-drag pans. `F` fits the curve.
-- Grid snapping is optional. Undo and redo retain up to 100 geometry states.
+- Grid snapping is optional.
 
 Documents are saved as readable `*.nurbs.json` files. **Export SVG** writes a densely tessellated, standalone SVG path suitable for other graphics tools.
 

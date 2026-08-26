@@ -3,8 +3,6 @@ extends Control
 
 signal selection_changed(index: int)
 signal curve_changed
-signal edit_started
-signal edit_finished
 signal pointer_status(text: String)
 
 enum ToolMode { SELECT, ADD, DELETE }
@@ -102,12 +100,10 @@ func select_point(index: int) -> void:
 func delete_selected() -> void:
 	if selected_index < 0:
 		return
-	edit_started.emit()
 	if curve.remove_point(selected_index):
 		selected_index = mini(selected_index, curve.control_points.size() - 1)
 		curve_changed.emit()
 		selection_changed.emit(selected_index)
-	edit_finished.emit()
 	queue_redraw()
 
 
@@ -325,14 +321,11 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 				select_point(point_index)
 				if point_index >= 0:
 					_dragging_point = true
-					edit_started.emit()
 			ToolMode.ADD:
-				edit_started.emit()
 				var new_point := _snap(screen_to_world(event.position))
 				var insert_index := _nearest_control_segment(event.position) + 1 if curve.control_points.size() >= 2 else -1
 				select_point(curve.add_point(new_point, insert_index))
 				curve_changed.emit()
-				edit_finished.emit()
 			ToolMode.DELETE:
 				if point_index >= 0:
 					select_point(point_index)
@@ -340,7 +333,6 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 	else:
 		if _dragging_point:
 			_dragging_point = false
-			edit_finished.emit()
 	accept_event()
 
 
