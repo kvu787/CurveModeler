@@ -161,3 +161,33 @@ source NURBS + signed N
 ```
 
 One final product distinction matters: this produces the raw parametric normal-offset locus. If the desired operation is a clean CAD-style outline or shape buffer, the application must additionally detect self-intersections, trim loops, and construct joins and end caps. Those are topology operations layered on top of the offset equation, not part of NURBS evaluation itself.
+
+## User
+
+> what does "analytic" mean
+
+## Assistant
+
+In this context, **analytic** means calculated directly from the curve's mathematical formula rather than estimated from sampled points.
+
+For example, a numerical derivative estimates the tangent with two nearby evaluations:
+
+\[
+C'(u) \approx \frac{C(u+h)-C(u-h)}{2h}.
+\]
+
+Its answer depends on the chosen step size \(h\): too large loses detail, while too small can amplify floating-point rounding.
+
+An analytic derivative differentiates the NURBS basis functions and rational quotient themselves. If
+
+\[
+C(u)=\frac{A(u)}{W(u)},
+\]
+
+then
+
+\[
+C'(u)=\frac{A'(u)W(u)-A(u)W'(u)}{W(u)^2}.
+\]
+
+This produces the tangent prescribed by the NURBS definition at that exact parameter, without choosing a nearby sampling distance. The computer still evaluates the formula using finite-precision floating-point numbers, so "analytic" does not mean infinitely precise; it means formula-derived rather than finite-difference-estimated.
