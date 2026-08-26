@@ -200,4 +200,4 @@ return parameters.map(curve.evaluate)
 
 This always returns exactly the requested number of vertices and naturally spends them where the curve bends most. The ideal mathematical definition behind it is: choose the `vertex_count` ordered curve parameters that minimize the maximum distance between the curve and the resulting polyline. The algorithm above is a simple greedy approximation to that minimax definition.
 
-`farthest_point_from_chord` can be implemented by sampling the interval reasonably densely, then optionally refining around the best sample. This is visually much better than uniform parameter sampling and simpler than converting the NURBS into Bézier spans.
+`farthest_point_from_chord` can be implemented by sampling the interval reasonably densely, then optionally refining around the best sample. Always choose an interior parameter; if all remaining errors are zero because the curve is straight, split the longest interval at its midpoint. This is visually much better than uniform parameter sampling and simpler than converting the NURBS into Bézier spans.
