@@ -67,3 +67,18 @@ Avoid evaluating the formula when $\|C'(u)\|$ is extremely small, since the deno
 If the coordinates are measured in pixels, curvature has units of inverse pixels. For a scale-independent display value, multiply it by a chosen reference length, such as the canvas size or the curve's bounding-box diagonal. For coloring the curve, evaluate $\kappa$ at each sampled parameter and map low values to a cool color and high values to a warm color.
 
 Do not use $\|C''(u)\|$ alone: it changes when the same geometric curve is parameterized differently and can be nonzero even along a straight line.
+
+## User
+
+> when referring simply to the "curvature" of a curve without any additional qualifiers, does this value have a direction?
+
+## Assistant
+
+No. For a curve, unqualified **curvature** conventionally means the nonnegative scalar $\kappa\geq0$. It says how sharply the curve bends, but not which way it bends.
+
+Two related quantities add directional information:
+
+- **Signed curvature** is a scalar used for an oriented 2D curve. Its sign distinguishes bending to the left from bending to the right relative to the direction in which the curve is traversed. Reversing that traversal direction reverses the sign.
+- The **curvature vector** is $dT/ds=\kappa N$, where $T$ is the unit tangent, $s$ is arc length, and $N$ is the principal normal. It points toward the local inside of the bend (the center of the osculating circle). This form also works for curves in 3D.
+
+Thus, “the curvature is 0.2” reports only sharpness. To report which way the curve bends, say “signed curvature” or “curvature vector.” At a point where $\kappa=0$, there is no uniquely defined principal-normal direction.
