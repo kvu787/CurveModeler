@@ -16,6 +16,10 @@ func _run() -> void:
 
 	_expect(app.curve.is_valid(), "Default document must contain a valid curve")
 	_expect(app.canvas.curve == app.curve, "Canvas must display the active document")
+	_expect(app.canvas.show_curvature, "Curvature visualization must be visible by default")
+	app._toggle_curvature(false)
+	_expect(not app.canvas.show_curvature, "Curvature visualization must be toggleable")
+	app._toggle_curvature(true)
 
 	app.canvas.select_point(2)
 	_expect(app.canvas.selected_index == 2, "Control-point selection must update")

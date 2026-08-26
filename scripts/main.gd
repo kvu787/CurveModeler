@@ -192,6 +192,12 @@ func _build_toolbar() -> Control:
 	snap_toggle.text = "Snap"
 	snap_toggle.toggled.connect(_toggle_snap)
 	row.add_child(snap_toggle)
+	var curvature_toggle := CheckButton.new()
+	curvature_toggle.text = "Curvature"
+	curvature_toggle.button_pressed = true
+	curvature_toggle.tooltip_text = "Show curvature spikes; longer and warmer means a sharper bend"
+	curvature_toggle.toggled.connect(_toggle_curvature)
+	row.add_child(curvature_toggle)
 	return panel
 
 
@@ -260,7 +266,7 @@ func _build_inspector() -> Control:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(spacer)
 	var help := Label.new()
-	help.text = "Mouse wheel  Zoom\nMiddle / right drag  Pan\nLeft drag  Move point\nCtrl+Z  Undo"
+	help.text = "Mouse wheel  Zoom\nMiddle / right drag  Pan\nLeft drag  Move point\nCurvature spikes point into bends\nCtrl+Z  Undo"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("64748b"))
 	column.add_child(help)
@@ -341,6 +347,12 @@ func _toggle_grid(value: bool) -> void:
 func _toggle_snap(value: bool) -> void:
 	canvas.snap_enabled = value
 	status_label.text = "Grid snapping %s" % ("on" if value else "off")
+
+
+func _toggle_curvature(value: bool) -> void:
+	canvas.show_curvature = value
+	canvas.queue_redraw()
+	status_label.text = "Curvature comb %s" % ("shown" if value else "hidden")
 
 
 func _on_selection_changed(_index: int) -> void:

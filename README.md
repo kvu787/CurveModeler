@@ -20,6 +20,7 @@ godot --path .
 - **Add point** (`A`) inserts a control point into the nearest control-polygon segment.
 - **Delete** (`X`) removes the point under the cursor. `Delete` removes the selected point.
 - The inspector edits exact X/Y coordinates, rational weight, curve degree, and the full knot vector.
+- The toggleable **Curvature** comb points into each bend; longer, warmer spikes mark sharper curvature and disappear on straight spans.
 - The mouse wheel zooms around the pointer; middle- or right-drag pans. `F` fits the curve.
 - Grid snapping is optional. Undo and redo retain up to 100 geometry states.
 

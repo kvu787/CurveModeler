@@ -17,6 +17,8 @@ const AXIS_Y := Color("37645f")
 const CONTROL_LINE := Color("64748b")
 const CURVE_GLOW := Color("163d52")
 const CURVE_COLOR := Color("38bdf8")
+const CURVATURE_LOW := Color("38bdf8")
+const CURVATURE_HIGH := Color("fb7185")
 const POINT_COLOR := Color("e2e8f0")
 const SELECTED_COLOR := Color("fbbf24")
 const HOVER_COLOR := Color("7dd3fc")
@@ -30,6 +32,7 @@ var view_offset := Vector2.ZERO
 var snap_enabled := false
 var grid_size := 50.0
 var show_grid := true
+var show_curvature := true
 
 var _dragging_point := false
 var _panning := false
@@ -121,6 +124,8 @@ func _draw() -> void:
 		return
 	_draw_control_polygon()
 	_draw_curve()
+	if show_curvature:
+		_draw_curvature_comb()
 	_draw_control_points()
 
 
@@ -187,6 +192,47 @@ func _draw_curve() -> void:
 		screen_points.append(world_to_screen(point))
 	draw_polyline(screen_points, CURVE_GLOW, 7.0, true)
 	draw_polyline(screen_points, CURVE_COLOR, 2.5, true)
+
+
+func _draw_curvature_comb() -> void:
+	if not curve.is_valid():
+		return
+	var domain := curve.get_domain()
+	var sample_count := clampi(int(size.x / 42.0), 16, 44)
+	var reference_length := maxf(curve.get_bounds().size.length(), 1.0)
+	for index in range(sample_count + 1):
+		var parameter := lerpf(domain.x, domain.y, float(index) / float(sample_count))
+		var derivatives := curve.evaluate_derivatives(parameter)
+		var tangent := derivatives[1]
+		var speed_squared := tangent.length_squared()
+		if speed_squared <= NurbsCurve2D.EPSILON * NurbsCurve2D.EPSILON:
+			continue
+		var signed_value := tangent.cross(derivatives[2]) / (speed_squared * sqrt(speed_squared))
+		var relative_curvature := absf(signed_value) * reference_length
+		var strength := relative_curvature / (1.0 + relative_curvature)
+		var indicator_length := 52.0 * strength
+		if indicator_length < 0.75:
+			continue
+		var world_normal := Vector2(-tangent.y, tangent.x).normalized()
+		if signed_value < 0.0:
+			world_normal = -world_normal
+		var screen_normal := _world_vector_to_screen(world_normal).normalized()
+		var base := world_to_screen(derivatives[0])
+		var start := base + screen_normal * 3.5
+		var tip := base + screen_normal * indicator_length
+		var color := CURVATURE_LOW.lerp(CURVATURE_HIGH, strength)
+		draw_line(start, tip, Color(color, 0.82), 1.5, true)
+		draw_circle(tip, 2.4, color)
+	_draw_curvature_legend()
+
+
+func _draw_curvature_legend() -> void:
+	var panel := Rect2(12, 12, 226, 45)
+	draw_rect(panel, Color("0b111b", 0.9), true)
+	draw_rect(panel, Color("334155", 0.9), false, 1.0)
+	var font := get_theme_default_font()
+	draw_string(font, Vector2(22, 31), "CURVATURE COMB", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("bae6fd"))
+	draw_string(font, Vector2(22, 48), "longer + warmer = sharper", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("94a3b8"))
 
 
 func _draw_control_points() -> void:
@@ -313,4 +359,3 @@ func _snap(value: Vector2) -> Vector2:
 	if not snap_enabled:
 		return value
 	return value.snapped(Vector2(grid_size, grid_size))
-
