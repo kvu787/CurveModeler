@@ -21,13 +21,12 @@ godot --path .
 - **Delete** removes the point under the cursor. **Remove selected point** removes the selected point.
 - The inspector edits exact X/Y coordinates, rational weight, and curve degree. It also displays the current knot vector in a compact read-only field.
 - Control vertices stay a constant size; their rational weights use a cool-to-warm color gradient centered on weight 1.
-- **Tessellation vertices** sets the exact number of vertices in the displayed polyline. Purple diamonds show the adaptively placed result, concentrated around the curve's strongest bends.
 - The toggleable **Curvature** comb points into each bend; longer, warmer spikes mark sharper curvature and disappear on straight spans.
 - The mouse wheel zooms around the pointer; middle- or right-drag pans. **Fit** frames the curve.
 
 All commands and canvas tools are mouse-only. The keyboard is available only while editing text or numeric values; click the relevant button to apply or perform an action.
 
-Documents are saved as readable `*.nurbs.json` files. **Export SVG** writes a densely tessellated, standalone SVG path suitable for other graphics tools.
+Documents are saved as readable `*.nurbs.json` files. **Export SVG** writes a standalone SVG path suitable for other graphics tools.
 
 ## Mathematical model and terminology
 
@@ -122,134 +121,6 @@ $$
 so it becomes singular, and ordinarily forms a cusp, where
 $1-d\kappa(u)=0$. Trimming self-intersections and constructing joins or end
 caps are topology operations, not part of the offset definition.
-
-### Optimal fixed-vertex-count tessellation
-
-Let $\Gamma:[a,b]\to\mathbb{R}^2$ denote either a NURBS curve $C$ or one
-regular branch of an offset $O_d$. A fixed-vertex-count tessellation with an
-integer $M\gt2$ chooses ordered parameters
-
-$$
-a=t_0\lt t_1\lt\cdots\lt t_{M-1}=b
-$$
-
-and joins the vertices $V_i=\Gamma(t_i)$ with straight segments. For this
-project, the error of the tessellation $T=(t_0,\ldots,t_{M-1})$ is its maximum
-subcurve-to-chord deviation:
-
-$$
-E(T;\Gamma)=
-\max_{0\leq i\lt M-1}\;
-\sup_{u\in[t_i,t_{i+1}]}
-\mathrm{dist}\left(
-\Gamma(u),\overline{V_iV_{i+1}}
-\right).
-$$
-
-An **optimal fixed-vertex-count tessellation** is any tessellation $T^*$ that
-satisfies
-
-$$
-E(T^*;\Gamma)=\min_T E(T;\Gamma).
-$$
-
-This is a minimax definition: it places the limited vertices so that the worst
-visible defect is as small as possible. It is invariant under a monotone
-reparameterization of the same curve. It is not the only possible meaning of
-"optimal"; equal arc length, minimum mean-square error, symmetric Hausdorff
-distance, and screen-space error are different objectives. When visual output
-is the goal, the definition is applied after the model-to-screen transform.
-
-#### Practical minimax algorithm
-
-The continuous minimax problem is nonsmooth and generally nonconvex. The
-recommended practical fixed-budget approximation is **greedy maximum-error
-insertion**:
-
-1. Start with the branch endpoints and any mandatory feature parameters.
-2. For every adjacent parameter pair, find the curve point farthest from its
-   chord.
-3. Split the interval having the greatest such deviation at that farthest
-   parameter.
-4. Repeat until exactly $M$ vertices exist.
-5. Optionally perform local minimax relaxation sweeps: move each nonmandatory
-   interior parameter between its neighbors to minimize the greater error of
-   its two adjacent chords.
-
-The greedy phase is an anytime algorithm that spends each new vertex on the
-current worst defect. Relaxation corrects some suboptimal early choices. It is a
-practical approximation to $T^*$, not a proof of the continuous global
-minimum. On a smooth short segment with curvature magnitude $|\kappa|$ and
-arc length $\Delta s$, the chord error is approximately
-
-$$
-e\approx\frac{|\kappa|\,\Delta s^2}{8},
-$$
-
-which explains why maximum-error insertion naturally concentrates vertices in
-high-curvature regions while still accounting for segment length.
-
-For a reproducible **grid-optimal** result, form a sufficiently dense ordered
-candidate set $q_0,\ldots,q_{K-1}$, precompute the deviation $D(i,j)$ of the
-subcurve from the chord joining $\Gamma(q_i)$ to $\Gamma(q_j)$, and solve
-
-$$
-\mathrm{DP}[m,j]=
-\min_{i\lt j}\max\left(\mathrm{DP}[m-1,i],D(i,j)\right).
-$$
-
-The base case is $\mathrm{DP}[2,j]=D(0,j)$, and states with too few preceding
-candidates are excluded. Backtracking at $\mathrm{DP}[M,K-1]$ gives the global
-minimax solution whose vertices belong to that candidate set. Its
-straightforward optimization cost is $O(MK^2)$, excluding construction of the
-error table. Continuous relaxation can then remove candidate-grid quantization.
-A certified continuous optimum requires global interval or branch-and-bound
-optimization over the ordered parameter domain and is substantially more
-expensive.
-
-#### NURBS-curve specialization
-
-For $\Gamma=C$, evaluate positions and derivatives directly from the rational
-B-spline formula. Distinct knot spans define the natural search intervals;
-repeated knots and one-sided derivatives must be examined explicitly. For a
-certified error oracle, convert each nonzero knot span to a rational Bézier span
-and use homogeneous de Casteljau subdivision with positive-weight convex-hull
-bounds. Sampled search plus one-dimensional refinement is faster and is the
-interactive implementation's approximation.
-
-Knot-span boundaries are search features, but they are mandatory tessellation
-vertices only when they contain a discontinuity or when preserving them is an
-explicit constraint. Forcing every ordinary knot into the result can prevent a
-true fixed-budget optimum.
-
-#### NURBS-offset specialization
-
-For $\Gamma=O_d$, tessellate evaluations of the analytic offset formula
-directly. Never offset the vertices of a source-curve tessellation: doing so
-optimizes a different, already approximated curve. Use one global maximum-error
-queue across all regular branches so the fixed budget goes to the branch with
-the current largest defect.
-
-Split the domain at tangent discontinuities and points where $C'(u)=0$; these
-are branch boundaries rather than ordinary smooth intervals. Detect offset cusp
-candidates from $1-d\kappa(u)=0$ and preserve them as mandatory vertices when
-the cusp must be represented exactly. If the endpoints and mandatory features
-already require more than $M$ vertices, the constrained tessellation is
-infeasible and must be reported rather than silently dropping a feature.
-
-The offset error oracle must measure $O_d$ against offset chords. Source-curve
-error and source curvature alone are insufficient because
-
-$$
-|\kappa_{O_d}(u)|=
-\frac{|\kappa(u)|}{|1-d\kappa(u)|}
-$$
-
-on a regular branch, so an inside offset can become arbitrarily sharp near a
-cusp. Adaptive offset sampling with local maximization is the practical oracle;
-certified bounds require interval bounds for the normalized normal and its
-derivatives. The same dynamic program gives a grid-optimal offset tessellation
-once its candidate set and offset-specific error table have been constructed.
 
 ## Tests
 
