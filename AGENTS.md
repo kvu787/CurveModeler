@@ -20,3 +20,7 @@ Separate commits that record conversations from other commits.
 # Mathematical notation in Markdown
 
 Any mathematical notation in Markdown files (LaTeX, KaTeX, MathJax, etc) must be compatible with VSCode's Markdown previewer and GitHub's Markdown displayer.
+
+# Compatibility
+
+Do not attempt to maintain any sort of application compatibility between different commits of the repo. This creates unwanted complexity.
