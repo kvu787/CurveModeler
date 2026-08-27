@@ -17,6 +17,8 @@ func _run() -> void:
 	_expect(ProjectSettings.get_setting("application/config/name") == "Curve Explorer", "Godot project metadata must use the Curve Explorer name")
 	_expect(app.APP_TITLE == "Curve Explorer", "Application UI metadata must use the Curve Explorer name")
 	_expect(app.name == "CurveExplorer", "The main scene root must use the Curve Explorer identifier")
+	var brand_label := app.find_child("Brand", true, false) as Label
+	_expect(brand_label != null and brand_label.text == "Curve Explorer", "Visible title-bar branding must read Curve Explorer exactly")
 	_expect(app.curve.is_valid(), "Default document must contain a valid curve")
 	_expect(app.canvas.curve == app.curve, "Canvas must display the active document")
 	_expect(app.canvas.show_curvature, "Curvature visualization must be visible by default")

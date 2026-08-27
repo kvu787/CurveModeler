@@ -149,7 +149,8 @@ func _build_title_bar() -> Control:
 	var row := HBoxContainer.new()
 	margin.add_child(row)
 	var brand := Label.new()
-	brand.text = "CURVE  /  EXPLORER"
+	brand.name = "Brand"
+	brand.text = APP_TITLE
 	brand.add_theme_font_size_override("font_size", 18)
 	brand.add_theme_color_override("font_color", Color("7dd3fc"))
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
