@@ -16,3 +16,7 @@ If you create a Godot project, include a "Run.cmd" file that builds and launches
 
 When implementing stuff, avoid difficult-to-review "mega-commits". Split large work into multiple commits to make it easier to review.
 Separate commits that record conversations from other commits.
+
+# Mathematical notation in Markdown
+
+Any mathematical notation in Markdown files (LaTeX, KaTeX, MathJax, etc) must be compatible with VSCode's Markdown previewer and GitHub's Markdown displayer.
