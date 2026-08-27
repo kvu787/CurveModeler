@@ -30,9 +30,10 @@ Documents are saved as readable `*.nurbs.json` files. **Export SVG** writes a st
 
 ## Mathematical model and terminology
 
-The definitions below assume an open planar curve. Parameters increase from the
-curve's first endpoint to its last endpoint, and all distances are measured in
-model space unless screen space is explicitly named.
+The definitions below assume a planar curve. Except where a periodic curve is
+explicitly defined, parameters increase from the curve's first endpoint to its
+last endpoint. All distances are measured in model space unless screen space is
+explicitly named.
 
 ### NURBS curve
 
@@ -73,6 +74,53 @@ usual closed-endpoint convention so that the last curve endpoint is included.
 "Non-uniform" permits unequal knot intervals and repeated knots. "Rational"
 means that the weighted B-spline numerator is divided by its scalar weight sum.
 The control points generally guide the curve rather than lie on it.
+
+### Periodic NURBS curve
+
+A **periodic NURBS curve** of degree $p$ is specified by $N>p$ unique control
+points $P_0,\ldots,P_{N-1}$ with positive weights $w_0,\ldots,w_{N-1}$.
+The control points and weights are extended to every integer index by
+
+$$
+P_{i+N}=P_i,
+\qquad
+w_{i+N}=w_i.
+$$
+
+Its unclamped, nondecreasing knot sequence is likewise extended over all
+integer indices and satisfies
+
+$$
+u_{i+N}=u_i+T
+$$
+
+for some parameter period $T>0$. Using the Cox-de Boor basis functions from
+this extended knot sequence, the curve is
+
+$$
+C(u)=
+\frac{\displaystyle\sum_{i\in\mathbb{Z}}N_{i,p}(u)w_iP_i}
+     {\displaystyle\sum_{i\in\mathbb{Z}}N_{i,p}(u)w_i}.
+$$
+
+Only $p+1$ basis functions are nonzero at any parameter value, so each sum is
+locally finite. The periodic control data and knot sequence imply
+
+$$
+C(u+T)=C(u).
+$$
+
+Consequently, any interval of length $T$, such as
+$[u_p,u_{p+N}]$, describes one traversal of the curve, and the curve has no
+distinguished endpoints. At a knot of multiplicity $r$, the curve is
+generically $C^{p-r}$ continuous. In particular, simple knots give
+$C^{p-1}$ continuity across the join between consecutive periods.
+
+This is stronger than a merely **closed NURBS curve**, for which only endpoint
+coincidence is required. A closed curve can satisfy $C(a)=C(b)$ without its
+tangent or higher derivatives matching at the join. **Cyclic** is sometimes
+used as a UI or implementation term for periodic control-point indexing, but
+**periodic NURBS curve** is the mathematical term used here.
 
 ### NURBS curve offset
 
