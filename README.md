@@ -104,8 +104,16 @@ the control polygon or a fitted NURBS approximation.
 
 The raw offset is undefined where \(C'(u)=0\). At a source corner, its two
 one-sided normals define separate offset branches and a round, bevel, or miter
-join is an additional modeling choice. With signed source curvature
-\(\kappa(u)\), a regular offset branch satisfies
+join is an additional modeling choice. Using the left-normal sign convention,
+the signed source curvature is
+
+\[
+\kappa(u)=
+\frac{x'(u)y''(u)-y'(u)x''(u)}{\lVert C'(u)\rVert^3}.
+\]
+
+It satisfies \(dT/ds=\kappa n_L\), where \(T\) is the unit tangent and \(s\) is
+source arc length. A regular offset branch therefore satisfies
 
 \[
 O_d'(u)=(1-d\kappa(u))C'(u),
@@ -153,9 +161,9 @@ is the goal, the definition is applied after the model-to-screen transform.
 
 #### Practical minimax algorithm
 
-The continuous minimax problem is nonsmooth and generally nonconvex. NURBS
-Studio uses **greedy maximum-error insertion** as its interactive fixed-budget
-approximation:
+The continuous minimax problem is nonsmooth and generally nonconvex. The
+recommended practical fixed-budget approximation is **greedy maximum-error
+insertion**:
 
 1. Start with the branch endpoints and any mandatory feature parameters.
 2. For every adjacent parameter pair, find the curve point farthest from its
