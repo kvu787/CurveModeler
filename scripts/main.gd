@@ -1,6 +1,6 @@
 extends Control
 
-const APP_TITLE := "NURBS Studio"
+const APP_TITLE := "Curve Explorer"
 const FILE_EXTENSION := "nurbs.json"
 
 var curve: NurbsCurve2D
@@ -149,7 +149,7 @@ func _build_title_bar() -> Control:
 	var row := HBoxContainer.new()
 	margin.add_child(row)
 	var brand := Label.new()
-	brand.text = "NURBS  /  STUDIO"
+	brand.text = "CURVE  /  EXPLORER"
 	brand.add_theme_font_size_override("font_size", 18)
 	brand.add_theme_color_override("font_color", Color("7dd3fc"))
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -284,7 +284,7 @@ func _build_dialogs() -> void:
 	file_dialog = FileDialog.new()
 	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	file_dialog.use_native_dialog = false
-	file_dialog.filters = PackedStringArray(["*.nurbs.json ; NURBS Studio document"])
+	file_dialog.filters = PackedStringArray(["*.nurbs.json ; Curve Explorer document"])
 	file_dialog.file_selected.connect(_on_file_selected)
 	add_child(file_dialog)
 	export_dialog = FileDialog.new()
@@ -462,7 +462,7 @@ func _open_document(path: String) -> void:
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary:
-		status_label.text = "This file is not a NURBS Studio document"
+		status_label.text = "This file is not a Curve Explorer document"
 		return
 	var loaded := NurbsCurve2D.from_dictionary(parsed)
 	if not loaded.is_valid():

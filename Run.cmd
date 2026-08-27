@@ -1,13 +1,13 @@
 @echo off
 setlocal
 
-title NURBS Studio - Build and Run
+title Curve Explorer - Build and Run
 cd /d "%~dp0"
 
 set "PROJECT_DIR=%~dp0"
 set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
 set "OUTPUT_DIR=%PROJECT_DIR%\build"
-set "OUTPUT_EXE=%OUTPUT_DIR%\NURBSStudio.exe"
+set "OUTPUT_EXE=%OUTPUT_DIR%\CurveExplorer.exe"
 set "TEMPLATE_DIR=%PROJECT_DIR%\.godot\run"
 set "CUSTOM_TEMPLATE=%TEMPLATE_DIR%\export-template.exe"
 set "GODOT_EXE="
@@ -46,8 +46,8 @@ echo %GODOT_VERSION% | findstr /b /c:"4.7.2" >nul
 if errorlevel 1 goto wrong_version
 
 echo.
-echo NURBS Studio
-echo ============
+echo Curve Explorer
+echo ==============
 echo Godot: %GODOT_VERSION%
 echo.
 echo [1/2] Preparing the Windows standalone template...
@@ -57,19 +57,19 @@ copy /y "%GODOT_EXE%" "%CUSTOM_TEMPLATE%" >nul
 if errorlevel 1 goto build_failed
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
-if exist "%OUTPUT_DIR%\NURBSStudio.exe" del /q "%OUTPUT_DIR%\NURBSStudio.exe" >nul 2>&1
-if exist "%OUTPUT_DIR%\NURBSStudio.exe" goto app_running
-if exist "%OUTPUT_DIR%\NURBSStudio.pck" del /q "%OUTPUT_DIR%\NURBSStudio.pck" >nul 2>&1
-if exist "%OUTPUT_DIR%\NURBSStudio.tmp" del /q "%OUTPUT_DIR%\NURBSStudio.tmp" >nul 2>&1
+if exist "%OUTPUT_DIR%\CurveExplorer.exe" del /q "%OUTPUT_DIR%\CurveExplorer.exe" >nul 2>&1
+if exist "%OUTPUT_DIR%\CurveExplorer.exe" goto app_running
+if exist "%OUTPUT_DIR%\CurveExplorer.pck" del /q "%OUTPUT_DIR%\CurveExplorer.pck" >nul 2>&1
+if exist "%OUTPUT_DIR%\CurveExplorer.tmp" del /q "%OUTPUT_DIR%\CurveExplorer.tmp" >nul 2>&1
 
-echo [2/2] Building NURBSStudio.exe...
+echo [2/2] Building CurveExplorer.exe...
 "%GODOT_EXE%" --headless --path "%PROJECT_DIR%" --export-release "Windows Desktop" "%OUTPUT_EXE%" --log-file "%TEMPLATE_DIR%\export.log"
 if errorlevel 1 goto build_failed
 if not exist "%OUTPUT_EXE%" goto build_failed
 
 echo.
-echo Build complete: build\NURBSStudio.exe
-echo Launching NURBS Studio...
+echo Build complete: build\CurveExplorer.exe
+echo Launching Curve Explorer...
 start "" "%OUTPUT_EXE%"
 exit /b 0
 
@@ -98,8 +98,8 @@ exit /b 1
 
 :app_running
 echo.
-echo ERROR: build\NURBSStudio.exe is currently running.
-echo Close NURBS Studio, then double-click Run.cmd again to rebuild it.
+echo ERROR: build\CurveExplorer.exe is currently running.
+echo Close Curve Explorer, then double-click Run.cmd again to rebuild it.
 echo.
 pause
 exit /b 1
