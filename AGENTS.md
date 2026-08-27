@@ -6,6 +6,7 @@ If necessary you can refer to the Godot 4.7.2 source repo in "C:\Users\k\Reposit
 
 Record and commit all conversations in the Conversations folder.
 Use one file per conversation.
+Prefix these commits with `[record]`.
 
 # Godot
 
