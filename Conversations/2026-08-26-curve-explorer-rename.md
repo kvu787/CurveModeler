@@ -22,3 +22,11 @@ The rename covers:
 Both the NURBS core tests and application smoke tests passed. A fresh Windows build was exported and its product metadata was verified as **Curve Explorer**. Obsolete generated `NURBSStudio` build artifacts were removed after the replacement build succeeded.
 
 The implementation and this conversation record were committed separately.
+
+## User follow-up
+
+> why is this name "curve / explorer". it should be "Curve Explorer".
+
+## Assistant follow-up
+
+Corrected the visible title-bar brand from the stylized `CURVE / EXPLORER` form to exactly **Curve Explorer**. The label now uses the shared application-title constant, and the smoke test verifies the rendered label text to prevent a recurrence.
