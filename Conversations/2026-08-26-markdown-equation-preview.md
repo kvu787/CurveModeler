@@ -60,3 +60,34 @@ now `$$...$$`. The LaTeX inside each equation is unchanged.
 Verified that no legacy delimiters remain and that the Markdown diff has no
 whitespace errors. The documentation change was committed as `4f3ac5f` (`Use
 portable Markdown math delimiters`).
+
+## User
+
+> i'm getting md errors from github now
+
+The user attached GitHub-rendered screenshots showing a truncated parameter
+ordering, a missing `cases` terminator error, two rejected `operatorname`
+macros, an extra-brace error in the dynamic-programming recurrence, and an
+unrendered inline `$d$` inside bold text.
+
+## Assistant
+
+Fixed the GitHub-specific math parsing failures in the README. Raw `<`
+characters inside equations were replaced with the TeX comparison command
+`\lt`; those characters had truncated the piecewise basis definition, ordered
+parameter sequence, maximum-error subscript, and dynamic-programming recurrence.
+The corresponding `M>2` comparison now uses `\gt` for consistency.
+
+GitHub's rejected `\operatorname` uses were removed. The distance operator now
+uses the allowed `\mathrm{dist}` form, and the `arg min` expression was restated
+without an operator macro as
+
+$$
+E(T^*;\Gamma)=\min_T E(T;\Gamma).
+$$
+
+The signed-distance definition was also reworded so inline math no longer sits
+inside a bold Markdown span. Local validation found paired display delimiters,
+balanced braces, matched `cases` boundaries, no old delimiters, no raw `<`, and
+no remaining `\operatorname` macros. The README fix was committed as `556643f`
+(`Fix GitHub math rendering errors`).
