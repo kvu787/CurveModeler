@@ -40,5 +40,6 @@ offset evaluator itself and divided into regular branches around undefined
 points and tangent discontinuities. Offset cusp handling, mandatory-feature
 budget feasibility, and the offset-curvature amplification formula are included.
 
-The README change was committed as `2f9cf32` (`Define NURBS offset and
-tessellation terminology`).
+The README changes were committed as `2f9cf32` (`Define NURBS offset and
+tessellation terminology`) and `3a3f13d` (`Clarify offset curvature
+convention`).
