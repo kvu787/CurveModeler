@@ -45,3 +45,18 @@ References:
 - [VS Code Markdown documentation](https://code.visualstudio.com/docs/languages/markdown)
 - [GitHub mathematical-expression documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)
 - [Markdown Preview Enhanced](https://www.marketplace.visualstudio.com/itemdetails?itemName=shd101wyy.markdown-preview-enhanced)
+
+## User
+
+> do this change
+
+## Assistant
+
+Converted every equation in the README's mathematical terminology section to
+the delimiter syntax shared by VS Code and GitHub Markdown. All inline
+`\(...\)` delimiters are now `$...$`, and all display `\[...\]` delimiters are
+now `$$...$$`. The LaTeX inside each equation is unchanged.
+
+Verified that no legacy delimiters remain and that the Markdown diff has no
+whitespace errors. The documentation change was committed as `4f3ac5f` (`Use
+portable Markdown math delimiters`).
