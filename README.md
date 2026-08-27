@@ -58,7 +58,7 @@ recursion:
 $$
 N_{i,0}(u)=
 \begin{cases}
-1,&u_i\leq u<u_{i+1},\\
+1,&u_i\leq u\lt u_{i+1},\\
 0,&\text{otherwise},
 \end{cases}
 $$
@@ -84,7 +84,7 @@ $$
 n_L(u)=\frac{(-y'(u),x'(u))}{\lVert C'(u)\rVert}.
 $$
 
-The **signed distance-$d$ NURBS curve offset** is the derived parametric curve
+The **NURBS curve offset at signed distance** $d$ is the derived parametric curve
 
 $$
 O_d(u)=C(u)+d\,n_L(u).
@@ -127,10 +127,10 @@ caps are topology operations, not part of the offset definition.
 
 Let $\Gamma:[a,b]\to\mathbb{R}^2$ denote either a NURBS curve $C$ or one
 regular branch of an offset $O_d$. A fixed-vertex-count tessellation with an
-integer $M>2$ chooses ordered parameters
+integer $M\gt2$ chooses ordered parameters
 
 $$
-a=t_0<t_1<\cdots<t_{M-1}=b
+a=t_0\lt t_1\lt\cdots\lt t_{M-1}=b
 $$
 
 and joins the vertices $V_i=\Gamma(t_i)$ with straight segments. For this
@@ -139,17 +139,18 @@ subcurve-to-chord deviation:
 
 $$
 E(T;\Gamma)=
-\max_{0\leq i<M-1}\;
+\max_{0\leq i\lt M-1}\;
 \sup_{u\in[t_i,t_{i+1}]}
-\operatorname{dist}\!\left(
+\mathrm{dist}\left(
 \Gamma(u),\overline{V_iV_{i+1}}
 \right).
 $$
 
-An **optimal fixed-vertex-count tessellation** is any
+An **optimal fixed-vertex-count tessellation** is any tessellation $T^*$ that
+satisfies
 
 $$
-T^*\in\operatorname*{arg\,min}_{T}E(T;\Gamma).
+E(T^*;\Gamma)=\min_T E(T;\Gamma).
 $$
 
 This is a minimax definition: it places the limited vertices so that the worst
@@ -194,7 +195,7 @@ subcurve from the chord joining $\Gamma(q_i)$ to $\Gamma(q_j)$, and solve
 
 $$
 \mathrm{DP}[m,j]=
-\min_{i<j}\max\!\left(\mathrm{DP}[m-1,i],D(i,j)\right).
+\min_{i\lt j}\max\left(\mathrm{DP}[m-1,i],D(i,j)\right).
 $$
 
 The base case is $\mathrm{DP}[2,j]=D(0,j)$, and states with too few preceding
