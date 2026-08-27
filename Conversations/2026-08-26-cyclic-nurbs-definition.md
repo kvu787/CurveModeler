@@ -55,3 +55,29 @@ control point equal to the first guarantees endpoint coincidence only; it does
 not generally make the tangent or higher derivatives agree. Terminology varies
 between libraries, so “cyclic” should be specified as **periodic**, not only
 **closed**.
+
+## User
+
+> is the proper way to refer to this "cyclic", "periodic", or something else
+
+## Assistant
+
+The standard mathematical term is **periodic NURBS curve**. More explicitly,
+one can say **closed periodic NURBS curve** when it is useful to emphasize both
+the geometric closure and the periodic parameterization.
+
+The terms have different strengths:
+
+- **Closed** means only that the curve's endpoints coincide:
+  \(C(a)=C(b)\). It does not imply matching derivatives at the join.
+- **Periodic** means that the parameterization repeats:
+  \(C(u+T)=C(u)\), normally with the corresponding derivatives matching across
+  the period. This is the precise property in the definition above.
+- **Cyclic** is a reasonable UI or implementation term, especially for wrapped
+  indexing or a “cyclic” toggle, but it is less standard and less mathematically
+  precise than *periodic*.
+
+Therefore, use **periodic NURBS curve** in mathematical documentation and APIs
+that expose the mathematical representation. A UI may use **Cyclic** if that is
+friendlier, but its documentation should state that it constructs a periodic
+NURBS rather than merely joining the endpoints.
