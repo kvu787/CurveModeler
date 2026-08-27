@@ -1,6 +1,6 @@
 # External tools
 
-If necessary you can refer to the Godot 4.7.2 source repo in "C:\Users\k\Repository\External\Godot_4-7-2".
+If necessary, you can refer to local copies of source repos in `C:\Users\k\Repository\External`.
 
 # Conversations
 
