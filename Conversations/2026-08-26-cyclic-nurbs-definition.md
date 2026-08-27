@@ -81,3 +81,20 @@ Therefore, use **periodic NURBS curve** in mathematical documentation and APIs
 that expose the mathematical representation. A UI may use **Cyclic** if that is
 friendlier, but its documentation should state that it constructs a periodic
 NURBS rather than merely joining the endpoints.
+
+## User
+
+> Edit the readme to include the definition of a periodic nurbs curve
+
+## Assistant
+
+Added a **Periodic NURBS curve** subsection to the README's mathematical model.
+It defines the periodically extended control points and weights, the unclamped
+periodic knot sequence, the rational curve equation, the parameter period, and
+the generic continuity at knots and across the period join. It also distinguishes
+a periodic curve from a curve whose endpoints merely coincide and records
+*periodic* as the mathematical term in preference to *cyclic*.
+
+The introductory assumptions were adjusted so the mathematical section covers
+both open and periodic planar curves. The documentation change was committed as
+`2d216af` (`Define periodic NURBS curves`).
